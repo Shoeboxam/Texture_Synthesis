@@ -3,7 +3,7 @@
 from gimpfu import *
 import os
 
-def mc_insanebump_auto(image, drawable, depth = 3, specular = 255): 
+def mc_insanebump_auto(image, drawable, depth = 3.0, specular = 255): 
   path_suffixes = [ "_n", "_s", "_d", "_a", "_h", "_hn", "_ln", "_mn", "_sn" ]
 
   def modify_path(insertion):
@@ -17,16 +17,24 @@ def mc_insanebump_auto(image, drawable, depth = 3, specular = 255):
   pdb.plug_in_tile(image, drawable, image.width * resize_factor, image.height * resize_factor, False)
 
   #(item, flip_type, auto_center, axis)
-  image = pdb.gimp_item_transform_flip_simple(image, 1, True, image.height / 2)
+  pdb.gimp_image_flip(image, 1)
 
-  #(image, drawable, remove_lighting, resizie, tile, new_width, edge_specular, def_specular, 
-    #depth, large_details, medium_details, small_details, shape_recog, smoothstep, noise, invh, ao, prev)
-  pdb.plug_in_insanebump(image, drawable, True, False, False, 1, specular != 255, specular, depth, 0, 0, 100, 0, False, False, False, 0, False)
+  pdb.gimp_displays_flush()
+
+  pdb.gimp_message(type(drawable))
+
+
+  try:
+    (image, drawable, remove_lighting, resizie, tile, new_width, edge_specular, def_specular, 
+      #depth, large_details, medium_details, small_details, shape_recog, smoothstep, noise, invh, ao, prev)
+    pdb.plug_in_insanebump(image, drawable, 1, 0, 0, 1, 0, specular, depth, 1, 1, 100, 0, 0, 0, 0, 0, 0)
+  except RuntimeError:
+    pdb.gimp_message("RuntimeError: Call didn't work!")
 
   for suffix in path_suffixes[1 + specular!=255:]:
     os.remove(modify_path(suffix))
 
-  map_normal_layer = pdb.gimp_file_load_layer(image, modify_path(path_suffixes[0]))
+  map_normal_layer = pdb.gimp_file_load_layer(image, modify_path(path_suffixes[0])) 
 
   image = pdb.gimp_item_transform_flip_simple(map_normal_layer, 1, True, image.height / 2)
 
@@ -36,16 +44,18 @@ def mc_insanebump_auto(image, drawable, depth = 3, specular = 255):
 
 
 register(
-  "python_fu_normalmap_autogen",
+  "plug-in-insanebump-auto",
   "InsaneBump Autorun",
   "Convert texture tile to normal map using InsaneBump",
   "Alias: Shoeboxam",
-  "Copyright Shoeboxam 2014",
+  "Shoeboxam 2014", #Copyright
   "2014/12/10",
   N_("InsaneBump Auto..."),
   "*",
   [
-    (PF_INT, "depth", "Depth", 3),
+    (PF_IMAGE, "image",       "Input image", None),
+    (PF_DRAWABLE, "drawable", "Input drawable", None),
+    (PF_FLOAT, "depth", "Depth", 3.0),
     (PF_INT, "specular", "Specular", 255)
   ],
   [],
@@ -55,3 +65,5 @@ register(
   )
 
 main()
+
+#pdb.plug_in_normalmap(image, drawable, 0, .04, 6, 1, 0, 1, 0, 0, 0, 1, 0, 0, drawable)
