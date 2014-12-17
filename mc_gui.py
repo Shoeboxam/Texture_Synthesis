@@ -6,8 +6,21 @@ import os.path
 import sys
 
 import array
+
+def gui_matchmaker():
+  matches = []
+  default = os.walk(os.getcwd() + '\\templates\\defaults')
+  replacer = os.walk(os.getcwd() + '\\templates\\replacers')
+
+  for filename_default, filename_replacer in zip(default, replacer):
+    if (filename_default[2] != filename_replacer[2]):
+      print("Mismatch")
+    else:
+      matches.append(filename_default)
+
+  return matches
  
-def normalmap_wrapper(glob_pattern, source):
+def gui_generator(glob_pattern, source):
 
 
   # Send errors and log to file
@@ -19,6 +32,8 @@ def normalmap_wrapper(glob_pattern, source):
   for dirpath, dirnames, filenames in os.walk(source):
       for filename in [f for f in filenames if f.endswith(".png")]:
           files.append(os.path.join(dirpath, filename))
+
+  matches = gui_matchmaker()
 
   # Loop through each file
   for path in files:
@@ -39,8 +54,14 @@ def normalmap_wrapper(glob_pattern, source):
     pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
     pixels_export = pixels
 
+    # Loop through each pixel
     for index, value in enumerate(pixels):
-      print(value)
+      # Loop through every possible match
+      for base in templates:
+
+
+      x = index % image.height
+      y = (index - x) / image.height
 
     #pdb.gimp_file_save(image, drawable, path, path)
  
@@ -52,15 +73,15 @@ register(
   "Shoeboxam",
   "2014", #Copyright
   "2014/12/10",
-  N_("Normalmap Auto..."),
+  N_("MC GUI Conversion..."),
   "",
   [
     (PF_STRING, "glob_pattern", "Glob Pattern", "*.png"),
     (PF_STRING, "source", "Source Directory", "")
   ],
   [],
-  normalmap_wrapper,
-  menu="<Image>/Filters/Map/",
+  gui_generator,
+  menu="<Image>/Filters/Minecraft/",
   domain=("gimp20-python", gimp.locale_directory)
   )
  
