@@ -7,7 +7,7 @@ import sys
 
 import array
  
-def gui_generator(glob_pattern, source):
+def gui_generator(glob_pattern, source, export):
 
   home = os.path.expanduser('~\\.gimp-2.8\\mc_gui\\')
 
@@ -33,10 +33,6 @@ def gui_generator(glob_pattern, source):
     # p_size = len(region[0,0])
     # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
     return pixels
-
-
-  def gui_identify(index_pixel, index_template):
-    return False
 
 
   # Send errors and log to file
@@ -85,27 +81,51 @@ def gui_generator(glob_pattern, source):
     image = pdb.gimp_file_load(path, path)
     image_export = pdb.gimp_image_new(image.width, image.height, 0)
 
+    success = False
+
     # Break image down into pixels
-    pixels = image_to_pixel(image)
+    pixel_array = image_to_pixel(image)
 
     # Loop through each pixel
-    for index_pixel, pixel in enumerate(pixels):
+    for pixel_index, pixel in enumerate(pixel_array):
 
-      #  Check pixel against every template
-      for index_template, base in enumerate(pixel_defaults):
-        if (base[0] == pixel and gui_identify(index_pixel, index_template)):
+      # Check pixel against every template
+      for template_index, template_pixel_array in enumerate(pixel_defaults):
+
+        def gui_identify(offset_x, offset_y, template_index):
+          template_width = image_defaults[template_index].width
+          template_height = image_defaults[template_index].height
+
+          # Ensure match can fit
+          if (template_width + offset_x > image.width or template_height + offset_y > image.height): 
+            return False
+
+          # Check template against image at offset
+          for template_pixel_index, template_pixel in enumerate(template_pixel_array):
+            template_pixel_x = template_pixel_index % template_width
+            template_pixel_y = (template_pixel_index - template_pixel_x) / template_height
+
+            if (template_pixel != pixel_array[pixel_index + template_pixel_x + (template_pixel_y * image.width)]):
+              return False
+
+          #Every pixel in template matched, therefore template has been identified in source image
+          return True
+
+        # Convert array index to cartesian coordinates
+        x = pixel_index % image.height
+        y = (pixel_index - x) / image.height
+
+        if (gui_identify(x, y, template_index)):
 
           # Add matched element's corresponding replacer to export image
-          inserted_element = pdb.gimp_image_insert_layer(image_export, image_replacers[index_template], 0, 0)
+          inserted_element = pdb.gimp_image_insert_layer(image_export, image_replacers[template_index], 0, 0)
 
-          # Convert array to cartesian coords
-          x = index_pixel % image.height
-          y = (index_pixel - x) / image.height
-
+          # Move inserted element to location of match
           pdb.gimp_layer_set_offsets(inserted_element, x * resolution_scale, y * resolution_scale)
 
-
-    #pdb.gimp_file_save(image, drawable, path, path)
+    if success:
+      path_export = path.replace(source, export, 1)
+      pdb.gimp_file_save(image_export, pdb.gimp_image_merge_visible_layers(image_export, 1), path_export, path_export)
  
  
 register(
@@ -119,7 +139,8 @@ register(
   "",
   [
     (PF_STRING, "glob_pattern", "Glob Pattern", "*.png"),
-    (PF_STRING, "source", "Source Directory", "")
+    (PF_STRING, "source", "Source Directory", ""),
+    (PF_STRING, "export", "Export Directory", "")
   ],
   [],
   gui_generator,
