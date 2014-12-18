@@ -23,14 +23,13 @@ def gui_matchmaker():
 
   return matches
 
-def gui_image_prep(path):
-    image = pdb.gimp_file_load(path, path)
-    drawable = pdb.gimp_image_get_active_layer(image)
-    region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
-    pixels = array.array("B", region[0:image.width, 0:image.height])
+def image_to_pixel(image):
+  drawable = pdb.gimp_image_get_active_layer(image)
+  region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
+  pixels = array.array("B", region[0:image.width, 0:image.height])
 
-    # p_size = len(region[0,0])
-    # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
+  # p_size = len(region[0,0])
+  # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
   return pixels
 
 
@@ -51,8 +50,14 @@ def gui_generator(glob_pattern, source):
 
   # Store templates in lists of pixel arrays
   for filename in matches:
-    image_defaults.append(gui_image_prep(home + 'templates\\defaults\\' + filename))
-    image_replacers.append(gui_image_prep(home + 'templates\\replacers\\' + filename))
+    image = pdb.gimp_file_load(home + 'templates\\defaults\\' + filename)
+    image_defaults.append(image)
+    pixel_defaults.append(image_to_pixel(image))
+
+    image = pdb.gimp_file_load(home + 'templates\\replacers\\' + filename)
+    image_replacers.append(image)
+    pixel_replacers.append(image_to_pixel(image))
+
 
 
   # Calculate scale increase
@@ -81,13 +86,18 @@ def gui_generator(glob_pattern, source):
     for index_pixel, pixel in enumerate(pixels):
 
       #  Check pixel against every template
-      for index_template, base in enumerate(image_defaults):
+      for index_template, base in enumerate(pixel_defaults):
         if (base[0] == pixel and gui_identify(index_pixel, index_template)):
-          # Apply matching template to image_export here
 
+          # Add matched element's corresponding replacer to export image
+          inserted_element = pdb.gimp_image_insert_layer(image_export, image_replacers[index_template], 0, 0)
 
-      # x = index % image.height
-      # y = (index - x) / image.height
+          # Convert array to cartesian coords
+          x = index_pixel % image.height
+          y = (index_pixel - x) / image.height
+
+          pdb.gimp_layer_set_offsets(inserted_element, x * resolution_scale, y * resolution_scale)
+
 
     #pdb.gimp_file_save(image, drawable, path, path)
  
