@@ -11,15 +11,15 @@ home = os.path.expanduser('~\\.gimp-2.8\\mc_gui\\')
 
 def gui_matchmaker():
   matches = []
-  default = os.walk(template_path + 'templates\\defaults')
-  replacer = os.walk(template_path + 'templates\\replacers')
+  default = os.walk(home + 'templates\\defaults')
+  replacer = os.walk(home + 'templates\\replacers')
 
 
   for filename_default, filename_replacer in zip(default, replacer):
     if (filename_default[2] != filename_replacer[2]):
       print("Mismatch")
     else:
-      matches.append(filename_default)
+      matches.append(filename_default[2])
 
   return matches
 
@@ -33,8 +33,8 @@ def image_to_pixel(image):
   return pixels
 
 
-def gui_identify():
-  return false
+def gui_identify(index_pixel, index_template):
+  return False
 
  
 def gui_generator(glob_pattern, source):
@@ -46,23 +46,30 @@ def gui_generator(glob_pattern, source):
 
   image_defaults = []
   image_replacers = []
+  pixel_defaults = []
+  pixel_replacers = []
   matches = gui_matchmaker()
 
   # Store templates in lists of pixel arrays
   for filename in matches:
-    image = pdb.gimp_file_load(home + 'templates\\defaults\\' + filename)
+    path = home + 'templates\\defaults\\' + filename[0]
+    image = pdb.gimp_file_load(path, path)
     image_defaults.append(image)
     pixel_defaults.append(image_to_pixel(image))
 
-    image = pdb.gimp_file_load(home + 'templates\\replacers\\' + filename)
+    path = home + 'templates\\replacers\\' + filename[0]
+    image = pdb.gimp_file_load(path, path)
     image_replacers.append(image)
     pixel_replacers.append(image_to_pixel(image))
 
 
 
   # Calculate scale increase
-  width_default = pdb.gimp_file_load(home + 'templates\\defaults\\' + matches[0]).width
-  width_replacer = pdb.gimp_file_load(home + 'templates\\replacer\\' + matches[0]).width
+  path = home + 'templates\\defaults\\' + matches[0][0]
+  width_default = pdb.gimp_file_load(path, path).width
+
+  path = home + 'templates\\defaults\\' + matches[0][0]
+  width_replacer = pdb.gimp_file_load(path, path).width
 
   resolution_scale = width_replacer / width_default
 
@@ -80,7 +87,7 @@ def gui_generator(glob_pattern, source):
     image_export = pdb.gimp_image_new(image.width, image.height, 0)
 
     # Break image down into pixels
-    pixels = gui_image_prep(path)
+    pixels = image_to_pixel(image)
 
     # Loop through each pixel
     for index_pixel, pixel in enumerate(pixels):
