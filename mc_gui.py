@@ -7,10 +7,13 @@ import sys
 
 import array
 
+home = os.path.expanduser('~\\.gimp-2.8\\mc_gui\\')
+
 def gui_matchmaker():
   matches = []
-  default = os.walk(os.getcwd() + '\\templates\\defaults')
-  replacer = os.walk(os.getcwd() + '\\templates\\replacers')
+  default = os.walk(template_path + 'templates\\defaults')
+  replacer = os.walk(template_path + 'templates\\replacers')
+
 
   for filename_default, filename_replacer in zip(default, replacer):
     if (filename_default[2] != filename_replacer[2]):
@@ -19,49 +22,72 @@ def gui_matchmaker():
       matches.append(filename_default)
 
   return matches
+
+def gui_image_prep(path):
+    image = pdb.gimp_file_load(path, path)
+    drawable = pdb.gimp_image_get_active_layer(image)
+    region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
+    pixels = array.array("B", region[0:image.width, 0:image.height])
+
+    # p_size = len(region[0,0])
+    # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
+  return pixels
+
+
+def gui_identify():
+  return false
+
  
 def gui_generator(glob_pattern, source):
 
 
   # Send errors and log to file
-  sys.stderr = open(os.path.expanduser('~\Desktop\errorstream.txt'), 'a')
-  sys.stdout = open(os.path.expanduser('~\Desktop\outstream.txt'), 'a')
+  sys.stderr = open(home + 'errorstream.txt', 'a')
+  sys.stdout = open(home + 'outstream.txt', 'a')
 
-  # Get all the files from the directory
-  files = []
-  for dirpath, dirnames, filenames in os.walk(source):
-      for filename in [f for f in filenames if f.endswith(".png")]:
-          files.append(os.path.join(dirpath, filename))
-
+  image_defaults = []
+  image_replacers = []
   matches = gui_matchmaker()
 
-  # Loop through each file
+  # Store templates in lists of pixel arrays
+  for filename in matches:
+    image_defaults.append(gui_image_prep(home + 'templates\\defaults\\' + filename))
+    image_replacers.append(gui_image_prep(home + 'templates\\replacers\\' + filename))
+
+
+  # Calculate scale increase
+  width_default = pdb.gimp_file_load(home + 'templates\\defaults\\' + matches[0]).width
+  width_replacer = pdb.gimp_file_load(home + 'templates\\replacer\\' + matches[0]).width
+
+  resolution_scale = width_replacer / width_default
+
+
+  # Retrieve paths to all default guis
+  files = []
+  for dirpath, dirnames, filenames in os.walk(source):
+    for filename in [f for f in filenames if f.endswith(".png")]:
+      files.append(os.path.join(dirpath, filename))
+
+  # Loop through each default gui
   for path in files:
-    # Debug
-    print(path)
-    # Load the file
+
     image = pdb.gimp_file_load(path, path)
+    image_export = pdb.gimp_image_new(image.width, image.height, 0)
 
-    drawable = pdb.gimp_image_get_active_layer(image)
-    drawable_export = drawable
-
-    region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
-    region_export = region
-
-    pixels = array.array("B", region[0:image.width, 0:image.height])
-
-    p_size = len(region[0,0])
-    pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
-    pixels_export = pixels
+    # Break image down into pixels
+    pixels = gui_image_prep(path)
 
     # Loop through each pixel
-    for index, value in enumerate(pixels):
-      # Loop through every possible match
-      for base in templates:
+    for index_pixel, pixel in enumerate(pixels):
+
+      #  Check pixel against every template
+      for index_template, base in enumerate(image_defaults):
+        if (base[0] == pixel and gui_identify(index_pixel, index_template)):
+          # Apply matching template to image_export here
 
 
-      x = index % image.height
-      y = (index - x) / image.height
+      # x = index % image.height
+      # y = (index - x) / image.height
 
     #pdb.gimp_file_save(image, drawable, path, path)
  
