@@ -6,38 +6,37 @@ import os.path
 import sys
 
 import array
-
-home = os.path.expanduser('~\\.gimp-2.8\\mc_gui\\')
-
-def gui_matchmaker():
-  matches = []
-  default = os.walk(home + 'templates\\defaults')
-  replacer = os.walk(home + 'templates\\replacers')
-
-
-  for filename_default, filename_replacer in zip(default, replacer):
-    if (filename_default[2] != filename_replacer[2]):
-      print("Mismatch")
-    else:
-      matches.append(filename_default[2])
-
-  return matches
-
-def image_to_pixel(image):
-  drawable = pdb.gimp_image_get_active_layer(image)
-  region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
-  pixels = array.array("B", region[0:image.width, 0:image.height])
-
-  # p_size = len(region[0,0])
-  # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
-  return pixels
-
-
-def gui_identify(index_pixel, index_template):
-  return False
-
  
 def gui_generator(glob_pattern, source):
+
+  home = os.path.expanduser('~\\.gimp-2.8\\mc_gui\\')
+
+  def gui_matchmaker():
+    matches = []
+    default = os.walk(home + 'templates\\defaults')
+    replacer = os.walk(home + 'templates\\replacers')
+
+
+    for filename_default, filename_replacer in zip(default, replacer):
+      if (filename_default[2] != filename_replacer[2]):
+        print("Mismatch")
+      else:
+        matches.append(filename_default[2])
+
+    return matches
+
+  def image_to_pixel(image):
+    drawable = pdb.gimp_image_get_active_layer(image)
+    region = drawable.get_pixel_rgn(0, 0, image.width, image.height, 1, 1)
+    pixels = array.array("B", region[0:image.width, 0:image.height])
+
+    # p_size = len(region[0,0])
+    # pixels = array.array("B", "\x00" * (image.width * image.width * p_size))
+    return pixels
+
+
+  def gui_identify(index_pixel, index_template):
+    return False
 
 
   # Send errors and log to file
