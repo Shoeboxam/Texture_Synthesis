@@ -118,12 +118,12 @@ def gui_generator(glob_pattern, source, export):
         if (gui_identify(x, y, template_index)):
 
           # Add matched element's corresponding replacer to export image
-          replacer_insert = pdb.gimp_layer_copy(pdb.gimp_image_get_active_layer(image_replacers[template_index]), 1)
+          replacer_insert = pdb.gimp_layer_new_from_drawable(pdb.gimp_image_get_active_layer(image_replacers[template_index]), image_export)
           print(type(replacer_insert))
-          pdb.gimp_image_insert_layer(image_export, replacer_insert, pdb.gimp_image_get_active_layer(image_export), 0)
+          # pdb.gimp_image_insert_layer(image_export, replacer_insert, pdb.gimp_image_get_active_layer(image_export), 0)
 
           # Move inserted element to location of match
-          pdb.gimp_layer_set_offsets(image_export, x * resolution_scale, y * resolution_scale)
+          pdb.gimp_layer_set_offsets(replacer_insert, x * resolution_scale, y * resolution_scale)
 
     if success:
       path_export = path.replace(source, export, 1)
