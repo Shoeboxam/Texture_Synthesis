@@ -1,13 +1,17 @@
 from PIL import Image
+import random
 import math
 
 # Configurable image metadata
-img = Image.open(r"C:\Users\mike_000\Desktop\planks_oak.png")
-board_widths = [15, 15, 15, 15]
+home = "C:\\Users\\mike_000\\Desktop\\"
+img = Image.open(home + "planks_oak_2.png")
+board_widths = [13, 13, 12, 13, 13]
 edge_depth = 4
-grout = 1
-bordering = [3, 0, 3, 0]
+grout = 0
+bordering = [0, 0, 0, 0]
 horizontal = True
+
+random.seed()
 
 if not horizontal:
     img = img.transpose(Image.ROTATE_270)
@@ -89,59 +93,66 @@ def scale(coordinates):
         scaled.append(int(element * resize_factor))
     return scaled
 
+
+def rand():
+    return random.randint(0, len(boards) - 1)
+
 # FENCE SIDE
 # Top Beam
-top_beam = resize(boards[1], scale([16, 3]))
+top_beam = resize(boards[rand()], scale([16, 3]))
 fence_side.paste(top_beam.crop(scale([10, 0, 16, 3])), scale([0, 1, 6, 4]))
 fence_side.paste(top_beam.crop(scale([0, 0, 6, 3])), scale([10, 1, 16, 4]))
 
 # Bottom Beam
-bottom_beam = resize(boards[2], scale([16, 3]))
+bottom_beam = resize(boards[rand()], scale([16, 3]))
 fence_side.paste(bottom_beam.crop(scale([10, 0, 16, 3])), scale([0, 7, 6, 10]))
 fence_side.paste(bottom_beam.crop(scale([0, 0, 6, 3])), scale([10, 7, 16, 10]))
 
 # Center post
-center_post = resize(boards[0], scale([16, 4]))
+center_post = resize(boards[rand()], scale([16, 4]))
 center_post = center_post.transpose(Image.ROTATE_90)
 center_post = center_post.transpose(Image.FLIP_LEFT_RIGHT)
 
 fence_side.paste(center_post, scale([6, 0, 10, 16]))
 
 # FENCE TOP
-horizontal_post = resize(boards[2], scale([16, 2]))
+horizontal_post = resize(boards[rand()], scale([16, 2]))
 fence_top.paste(horizontal_post.crop(scale([10, 0, 16, 2])), scale([0, 7, 6, 9]))
 fence_top.paste(horizontal_post.crop(scale([0, 0, 6, 2])), scale([10, 7, 16, 9]))
 
-vertical_post = resize(boards[1], scale([12, 2])).transpose(Image.ROTATE_270)
+vertical_post = resize(boards[rand()], scale([12, 2])).transpose(Image.ROTATE_270)
 vertical_post = vertical_post.transpose(Image.FLIP_TOP_BOTTOM)
 fence_top.paste(vertical_post.crop(scale([0, 6, 2, 12])), scale([7, 0, 9, 6]))
 fence_top.paste(vertical_post.crop(scale([0, 0, 2, 6])), scale([7, 10, 9, 16]))
 
 
-fence_top.paste(resize(boards_unadorned[3], scale([4, 4]), 1), scale([6, 6, 10, 10]))
+fence_top.paste(resize(boards_unadorned[rand()], scale([4, 4]), 1), scale([6, 6, 10, 10]))
 
 # GATE SIDE
-post = boards_unadorned[0].transpose(Image.ROTATE_270)
+post = boards_unadorned[rand()].transpose(Image.ROTATE_270)
 post = post.transpose(Image.FLIP_TOP_BOTTOM)
 gate_side.paste(resize(post, scale([2, 11]), 1), scale([0, 0, 2, 11]))
 
-post = boards_unadorned[1].transpose(Image.ROTATE_270)
+post = boards_unadorned[rand()].transpose(Image.ROTATE_270)
 post = post.transpose(Image.FLIP_TOP_BOTTOM)
 gate_side.paste(resize(post, scale([2, 9]), 1), scale([6, 1, 8, 10]))
 
-post = boards_unadorned[2].transpose(Image.ROTATE_270)
+post = boards_unadorned[rand()].transpose(Image.ROTATE_270)
 post = post.transpose(Image.FLIP_TOP_BOTTOM)
 gate_side.paste(resize(post, scale([2, 9]), 1), scale([8, 1, 10, 10]))
 
-post = boards_unadorned[3].transpose(Image.ROTATE_270)
+post = boards_unadorned[rand()].transpose(Image.ROTATE_270)
 post = post.transpose(Image.FLIP_TOP_BOTTOM)
 gate_side.paste(resize(post, scale([2, 11]), 1), scale([14, 0, 16, 11]))
 
-gate_side.paste(resize(boards_unadorned[0], scale([4, 3]), 1), scale([2, 1, 6, 4]))
-gate_side.paste(resize(boards_unadorned[1], scale([4, 3]), 1), scale([10, 1, 14, 4]))
-gate_side.paste(resize(boards_unadorned[2], scale([4, 3]), 1), scale([2, 7, 6, 10]))
-gate_side.paste(resize(boards_unadorned[3], scale([4, 3]), 1), scale([10, 7, 14, 10]))
+gate_side.paste(resize(boards_unadorned[rand()], scale([4, 3]), 1), scale([2, 1, 6, 4]))
+gate_side.paste(resize(boards_unadorned[rand()], scale([4, 3]), 1), scale([10, 1, 14, 4]))
+gate_side.paste(resize(boards_unadorned[rand()], scale([4, 3]), 1), scale([2, 7, 6, 10]))
+gate_side.paste(resize(boards_unadorned[rand()], scale([4, 3]), 1), scale([10, 7, 14, 10]))
 
+fence_side.save(home + "fence_side.png")
+fence_top.save(home + "fence_top.png")
+gate_side.save(home + "gate_side.png")
 
 fence_side.show()
 fence_top.show()
