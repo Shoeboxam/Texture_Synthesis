@@ -74,7 +74,7 @@ def extract_matches(source, output, key_repository):
 shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
 
 make_default(home)
-remove_cruft(home + "\\resourcepacks\\default\\")
+remove_cruft(home + "\\resourcepacks\\temp\\")
 extract_matches(home + "\\resourcepacks\\temp\\", home + "\\resourcepacks\\default\\", key_repository)
 
 shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
