@@ -3,10 +3,6 @@ import os
 from distutils.dir_util import copy_tree
 import shutil
 
-key_repository = 'C:\\Users\mike_000\Textures\Modded-1.7.x'
-
-home = "C:\\Users\mike_000\AppData\Roaming\.ftb\FTBInfinity\minecraft"
-
 
 def remove_cruft(target_path):
     # Filter out all filetypes that are not .png
@@ -69,12 +65,3 @@ def extract_matches(source, output, key_repository):
     for k, v in asset_dictionary.items():
         if v in os.listdir(source):
             copy_tree(source + "\\" + v, output + "\\" + k)
-
-
-shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
-
-make_default(home)
-remove_cruft(home + "\\resourcepacks\\temp\\")
-extract_matches(home + "\\resourcepacks\\temp\\", home + "\\resourcepacks\\default\\", key_repository)
-
-shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
