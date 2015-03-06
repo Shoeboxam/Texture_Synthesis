@@ -3,9 +3,9 @@ import os
 from PIL import Image
 
 home = r"C:\Users\mike_000\AppData\Roaming\.ftb\FTBResurrection\minecraft"
-threshold = 0.80
+threshold = 0.70
 
-template_img = Image.open(r"C:\Users\mike_000\Desktop\planks_oak.png")
+template_img = Image.open(r"C:\Users\mike_000\Desktop\defaults\glass.png")
 template = template_img.convert("L").getdata()
 
 for root, dirs, files in os.walk(home + "\\resourcepacks\\default\\"):
@@ -17,3 +17,4 @@ for root, dirs, files in os.walk(home + "\\resourcepacks\\default\\"):
 
             if(pearsonr(template, candidate)[0] > threshold):
                 print(current_file)
+                img.show()
