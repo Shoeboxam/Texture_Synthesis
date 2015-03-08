@@ -1,8 +1,9 @@
 from create_default import *
 from create_diff import *
+from create_mappings import *
 from settings import *
 
-from batch_apply import *
+# from batch_apply import *
 
 
 def create_default():
@@ -16,7 +17,6 @@ def create_default():
 
 
 def create_diff():
-    diff_pack = default_pack.replace("resourcepacks\default", "resourcepacks\default_diff")
     untextured_paths = untextured_paths(resource_pack, default_pack)
     copytree_wrapper(default_pack, diff_pack, untextured_paths)
 
@@ -24,5 +24,11 @@ def create_diff():
     remove_cruft(diff_pack)
 
 
-def create_templates():
-    pass
+def texture_synthesize():
+    template_index = create_template_index(template_path)
+    keys = create_identification_dictionary(diff_pack, template_path)
+
+    print(keys)
+
+
+texture_synthesize()

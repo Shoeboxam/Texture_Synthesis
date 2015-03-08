@@ -58,7 +58,7 @@ def extract_matches(source, output, key_repository):
     asset_dictionary = {}
     for folder in os.listdir(key_repository):
         try:
-            asset_dictionary[folder] = os.listdir(key_repository + '//' + folder + '//assets' )[0]
+            asset_dictionary[folder] = os.listdir(key_repository + '//' + folder + '//assets')[0]
         except FileNotFoundError:
             pass  # Ignore nonstandard and .git folders
 
