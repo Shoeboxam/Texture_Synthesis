@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+import csv
 
 
 # Applies (filter/function) to all images in directory
@@ -12,3 +13,7 @@ def batch_apply(target, function, *args):
 
 def resize(tile, scalar):
     return tile.resize(tile.size*scalar)
+
+
+def analyze(tile):
+    pixelize

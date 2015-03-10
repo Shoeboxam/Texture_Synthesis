@@ -1,2 +1,3 @@
 /Images/
 /__pycache__/
+*.pyc
