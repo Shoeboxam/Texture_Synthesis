@@ -35,4 +35,5 @@ def create_diff():
 def image_analysis():
     """Extract representative colors for every image that matches template"""
     template_index = list_templates(template_path)
-    keys = identify_templates(default_pack, template_path, threshold=.85)
+    keys = template_detect(default_pack, template_path, threshold=.85)
+    build_metadata_tree(diff_pack, default_pack, keys)

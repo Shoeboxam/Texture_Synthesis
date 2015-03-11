@@ -7,6 +7,7 @@ home = normpath(expanduser(r"~\AppData\Roaming\.ftb\FTBInfinity\minecraft\\"))
 default_pack = normpath(home + '\\resourcepacks\default\\')
 diff_pack = normpath(home + '\\resourcepacks\default_diff\\')
 resource_pack = normpath(expanduser(r'~\Textures\Invictus\Modded-1.7.x'))
+metadata_pack = normpath(home + '\\resourcepacks\default_metadata\\')
 
 mods_directory = normpath(home + '\\mods\\')
 key_repository = normpath(expanduser(r'~\Textures\Modded-1.7.x'))

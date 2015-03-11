@@ -5,7 +5,7 @@ from skimage import io
 import numpy as np
 
 import os
-import csv
+import json
 import colorsys
 
 
@@ -33,8 +33,8 @@ def correlate(template, candidate):
     return pearsonr(template, candidate)[0]
 
 
-def identify_templates(target, template_path, threshold):
-    """Produces dictionary of paths as keys and template detected as value"""
+def template_detect(target, template_path, threshold):
+    """Finds all occurences of templates in target directory"""
 
     def brightnesses(path):
         """Convert from path to list of values"""
@@ -55,14 +55,30 @@ def identify_templates(target, template_path, threshold):
 
             # template with highest correlation is selected
             highest_correlation = [0, "null"]
-            for temp_pixels, temp_filename in zip(template_images, template_filenames):
-                relation_coefficient = correlate(temp_pixels, brightnesses(full_path))
-                if threshold < relation_coefficient and relation_coefficient > highest_correlation[0]:
-                    highest_correlation = [relation_coefficient, temp_filename]
+            for template_pixels, template_filename in zip(template_images, template_filenames):
+                relation_coefficient = correlate(template_pixels, brightnesses(full_path))
 
-            image_keys[full_path.replace(target, "")] = highest_correlation[1]
+                if relation_coefficient > highest_correlation[0]:
+                    highest_correlation = [relation_coefficient, template_filename]
+
+            if highest_correlation[0] > threshold:
+                image_keys[full_path.replace(target, "")] = highest_correlation[1]
 
     return image_keys
+
+
+def build_metadata_tree(analysis_directory, output_directory, image_keys):
+    """Produce json meta files for every image in key"""
+    for key in image_keys.keys():
+
+        # Calculate colors from image in analysis_directory
+        key_path = os.path.join(analysis_directory, key)
+        representative_colors = color_extract(3, key_path)
+
+        # Save colors to json file in meta pack
+        output_path = os.path.join(output_directory, key)
+        with open(output_path, 'w') as output_file:
+            json.dump(representative_colors, output_file)
 
 
 def color_extract(color_count, target_image):
