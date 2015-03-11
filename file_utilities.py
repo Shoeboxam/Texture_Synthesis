@@ -3,22 +3,13 @@ import os
 from distutils.dir_util import copy_tree
 
 from shutil import copytree
-from settings import *
+from shutil import rmtree
 
 
-def extract_defaults():
-    vanilla_dir = home + "\\resourcepacks\\default_vanilla\\"
-    zip_ob = ZipFile(jar_path)
+def resource_filter(target_path):
+    """Filter out all filetypes that are not .png"""
 
-    zip_ob.extractall(vanilla_dir)
-
-    # Remove lock
-    zip_ob.close()
-    remove_cruft(vanilla_dir)
-
-
-def remove_cruft(target_path):
-    # Filter out all filetypes that are not .png
+    # Walk file tree from tips, deleting non png files, then empty folders
     for root, folders, files in os.walk(target_path, topdown=False):
         for current_file in files:
             if not current_file.endswith('.png'):
@@ -33,16 +24,19 @@ def remove_cruft(target_path):
                 os.rmdir(folder_name)
 
 
-def make_default(home, separate=True):
-    for file in os.listdir(home + "\\mods\\"):
+def extract_files(mods_directory, staging_directory, separate=True):
+    """Unzip every mod into staging directory"""
+
+    for file in os.listdir(mods_directory):
         if file.endswith(".jar"):
             try:
-                zip_ob = zipfile.ZipFile(home + "\\mods\\" + file)
+                zip_ob = zipfile.ZipFile(mods_directory + file)
 
-                mod_path = home + "\\resourcepacks\\temp\\"
+                mod_path = staging_directory
                 if (separate):
                     mod_path += ("\\" + file)
 
+                # Extract mod into staging directory
                 try:
                     zip_ob.extractall(mod_path)
                 except PermissionError:
@@ -50,23 +44,25 @@ def make_default(home, separate=True):
                 except FileNotFoundError:
                     pass
 
+                # Rename mod folder to the name of its assets folder, merging shared folders
                 try:
-                    os.rename(mod_path, home + "\\resourcepacks\\temp\\" + os.listdir(mod_path + "\\assets")[0])
+                    os.rename(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
                 except FileNotFoundError:
                     print("Skipping rename of " + file + " [FileNotFoundError]")
-                    shutil.rmtree(mod_path)
+                    rmtree(mod_path)
                 except FileExistsError:
-                    copy_tree(mod_path, home + "\\resourcepacks\\temp\\" + os.listdir(mod_path + "\\assets")[0])
-                    shutil.rmtree(mod_path)
-
-                print(file)
+                    copy_tree(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
+                    rmtree(mod_path)
 
             finally:
                 # Remove lock
                 zip_ob.close()
 
 
-def extract_matches(source, output, key_repository):
+def repository_format(source, output, key_repository):
+    """Convert texture pack to repository format """
+
+    # Link asset folder name to mod name in key repository
     asset_dictionary = {}
     for folder in os.listdir(key_repository):
         try:
@@ -74,34 +70,44 @@ def extract_matches(source, output, key_repository):
         except FileNotFoundError:
             pass  # Ignore nonstandard and .git folders
 
+    # Use asset-modname link to identify mods via their asset folder names
     for k, v in asset_dictionary.items():
         if v in os.listdir(source):
             copy_tree(source + "\\" + v, output + "\\" + k)
 
 
 def get_untextured(resource_pack, default_pack):
+    """Returns list of paths that are in default_pack, but not in resource_pack """
+
+    # Create list of relative texture paths for every file in resource pack
     resource_listing = {}
     for root, dirs, files in os.walk(resource_pack):
         for name in files:
             path = os.path.join(root, name).replace(resource_pack, "")
             resource_listing[path] = 1
 
+    # Create list of relative texture paths for every file in default pack
     default_listing = {}
     for root, dirs, files in os.walk(default_pack):
         for name in files:
             path = os.path.join(root, name).replace(default_pack, "")
             default_listing[path] = 1
 
+    # Differentiate listings to find untextured files
     untextured_paths = []
     for name in default_listing.keys():
         if not(name in resource_listing.keys()) and not name.startswith("\\.git"):
             untextured_paths.append(name)
 
-    untextured_paths.sort()
-    return untextured_paths
+    # Sort paths to cluster images near each other in directory tree, for readability
+    return untextured_paths.sort()
 
 
 def copytree_wrapper(default_pack, diff_pack, untextured_paths):
+    """Copy untextured files from default pack into new directory """
+
+    # Copytree passes list of files it plans to copy
+    # keep_list returns a list of files that have been textured (to ignore)
     def keep_list(folder, files):
         ignore_list = []
         for file in files:
@@ -112,21 +118,3 @@ def copytree_wrapper(default_pack, diff_pack, untextured_paths):
         return ignore_list
 
     copytree(default_pack, diff_pack, ignore=keep_list)
-
-
-def create_default():
-    shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
-
-    make_default(home)
-    remove_cruft(home + "\\resourcepacks\\temp\\")
-    extract_matches(home + "\\resourcepacks\\temp\\", home + "\\resourcepacks\\default\\", key_repository)
-
-    shutil.rmtree(home + "\\resourcepacks\\temp\\", True)
-
-
-def create_diff():
-    untextured_paths = get_untextured(resource_pack, default_pack)
-    copytree_wrapper(default_pack, diff_pack, untextured_paths)
-
-    # Remove extra files and folders from diff using make_default.py
-    remove_cruft(diff_pack)
