@@ -34,6 +34,14 @@ def create_diff():
 
 def image_analysis():
     """Extract representative colors for every image that matches template"""
-    template_index = list_templates(template_path)
+
     keys = template_detect(default_pack, template_path, threshold=.85)
-    build_metadata_tree(diff_pack, default_pack, keys)
+    build_metadata_tree(diff_pack, metadata_pack, keys)
+
+
+def image_synthesis():
+    """Synthesize textures from templates and metadata"""
+
+    template_index = list_templates(template_path)
+
+image_analysis()

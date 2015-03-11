@@ -1,27 +1,10 @@
 from PIL import Image
 from scipy.stats.stats import pearsonr
 from sklearn.cluster import KMeans
-from skimage import io
 import numpy as np
 
 import os
 import json
-import colorsys
-
-
-def list_templates(template_path):
-    """Returns a list of names of key-value template image pairs"""
-    matches = []
-    keys = os.listdir(template_path + '\\keys\\')
-    values = os.listdir(template_path + '\\values\\')
-
-    for filename_default, filename_replacer in zip(keys, values):
-        if (filename_default == filename_replacer):
-            matches.append(filename_default)
-        else:
-            print("Incomplete template pairing: " + filename_default)
-
-    return matches
 
 
 def correlate(template, candidate):
@@ -68,28 +51,42 @@ def template_detect(target, template_path, threshold):
 
 
 def build_metadata_tree(analysis_directory, output_directory, image_keys):
-    """Produce json meta files for every image in key"""
-    for key in image_keys.keys():
+    """Save representative data to json files in meta pack"""
+
+    for key, template_name in image_keys.items():
+
+        key_path = analysis_directory + key
+        output_path = os.path.split(output_directory + key)[0]
 
         # Calculate colors from image in analysis_directory
-        key_path = os.path.join(analysis_directory, key)
-        representative_colors = color_extract(3, key_path)
+        representative_colors = color_extract(3, key_path).tolist()
 
-        # Save colors to json file in meta pack
-        output_path = os.path.join(output_directory, key)
-        with open(output_path, 'w') as output_file:
-            json.dump(representative_colors, output_file)
+        # Create folder structure
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+        # Save json file
+        with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
+            json.dump([template_name, representative_colors], output_file)
 
 
 def color_extract(color_count, target_image):
     """Pass in image path, returns X number of representative colors"""
 
-    # Image load into numpy array- list of lines of pixels of channels
-    subject_image = io.imread(target_image)
+    # Load image and add alpha channel
+    subject_image = Image.open(target_image)
+    subject_image = subject_image.convert("RGBA")
 
-    # Flatten into a list of pixels of channels
-    width, height, depth = tuple(subject_image.shape)
-    image_array = np.reshape(subject_image, (width * height, depth))
+    # Convert to numpy array
+    pixels = np.asarray(subject_image.getdata())
 
-    # KMeans.fit(image), where KMeans calcs X colors deterministically
-    return KMeans(n_clusters=color_count, random_state=0).fit(image_array).cluster_centers_
+    # Filter out transparent pixels
+    pixel_list = []
+    for index in range(len(pixels)):
+
+        if pixels[index][3] > 128:
+            pixel_list.append(pixels[index])
+
+    # Calculate X number of representative colors deterministically
+    KMeans_object = KMeans(n_clusters=color_count, random_state=0)
+    return KMeans_object.fit(pixel_list).cluster_centers_
