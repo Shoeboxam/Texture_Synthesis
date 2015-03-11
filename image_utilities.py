@@ -53,9 +53,14 @@ def identify_templates(target, template_path, threshold):
         for current_file in files:
             full_path = root + "\\" + current_file
 
+            # template with highest correlation is selected
+            highest_correlation = [0, "null"]
             for temp_pixels, temp_filename in zip(template_images, template_filenames):
-                if threshold < correlate(temp_pixels, brightnesses(full_path)):
-                    image_keys[full_path.replace(target, "")] = temp_filename
+                relation_coefficient = correlate(temp_pixels, brightnesses(full_path))
+                if threshold < relation_coefficient and relation_coefficient > highest_correlation[0]:
+                    highest_correlation = [relation_coefficient, temp_filename]
+
+            image_keys[full_path.replace(target, "")] = highest_correlation[1]
 
     return image_keys
 

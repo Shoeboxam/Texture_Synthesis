@@ -13,7 +13,3 @@ def batch_apply(target, function, *args):
 
 def resize(tile, scalar):
     return tile.resize(tile.size*scalar)
-
-
-def analyze(tile):
-    pixelize
