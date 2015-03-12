@@ -1,6 +1,9 @@
 import os
 from PIL import Image
+import PIL.ImageOps
 import json
+import math
+import np
 
 
 def list_templates(template_path):
@@ -18,16 +21,27 @@ def list_templates(template_path):
     return matches
 
 
-# Applies (filter/function) to all images in directory
-def batch_apply(target, function, *args):
-    for root, folder, file in os.walk(target):
-        current_image = Image.open(os.path.join(root, file))
-        current_image = function(current_image, *args)
-        current_image.save(os.path.join(root, file))
+def template_decompose(template, layers):
 
+    master_mask = template.convert("L")
 
-def resize(tile, scalar):
-    return tile.resize(tile.size*scalar)
+    opacity_range = 1 / layers
+    for current_layer in range(layers):
+        pixels_mask = []
+        opacity_peak = opacity_range * current_layer - (opacity_range / 2)
+        for lightness in np.asarray(master_mask)[0]:
+            # If lightness is within first period
+            if lightness > opacity_peak - (opacity_range / 2) and lightness < opacity_peak + (opacity_range / 2):
+                # Then weight opacity sinusoidally
+                pixels_mask.append(math.cos(2 * math.pi * lightness - 2 * math.pi * opacity_peak) / 2 + .5)
+            else:
+                pixels_mask.append(0)
+
+        width, height = template.size
+
+        Image.fromarray(np.reshape(pixels_mask, width, height))
+
+        Image.alpha_composite()
 
 
 def populate_images(templates_path, metadata_pack, output_path):
@@ -35,4 +49,3 @@ def populate_images(templates_path, metadata_pack, output_path):
     for root, folders, files in os.walk(metadata_pack):
         for file in files:
             full_path = os.path.join(root, file)
-            

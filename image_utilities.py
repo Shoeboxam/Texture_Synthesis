@@ -70,21 +70,26 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys):
             json.dump([template_name, representative_colors], output_file)
 
 
-def color_extract(color_count, target_image):
-    """Pass in image path, returns X number of representative colors"""
+def load_pixels(path):
+    """Load path to pixel array"""
 
-    # Load image and add alpha channel
-    subject_image = Image.open(target_image)
+    subject_image = Image.open(path)
     subject_image = subject_image.convert("RGBA")
 
     # Convert to numpy array
-    pixels = np.asarray(subject_image.getdata())
+    return np.asarray(subject_image.getdata())
 
-    # Filter out transparent pixels
+
+def color_extract(color_count, target_image):
+    """Pass in image path, returns X number of representative colors"""
+
+    pixels = load_pixels(target_image)
+
+    # Retrieve opaque pixels
     pixel_list = []
     for index in range(len(pixels)):
 
-        if pixels[index][3] > 128:
+        if pixels[index][3] > 0:
             pixel_list.append(pixels[index])
 
     # Calculate X number of representative colors deterministically
