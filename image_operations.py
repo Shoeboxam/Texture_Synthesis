@@ -27,41 +27,45 @@ def image_decompose(source, layers):
     master_mask_image = source.convert("L")
     width, height = source.size
 
+
     # Convert to numpy array, then normalize to range of opacity variables
     master_mask = np.asarray(master_mask_image).astype(float).flatten() / 256
+    print(len(master_mask))
     master_mask_range = master_mask.max() - master_mask.min()
 
     # Create linearly-spaced value based layer masks spread over range of source image lightness
     mask_list = []
     opacity_range = master_mask_range / layers
+    omega = (2 * math.pi) / opacity_range
 
     for current_layer in range(layers):
         pixels_mask = []
 
-        # Peak opacity = lowest opacity + spacers + 50% offset
+        # Peak opacity = lowest opacity + spacers - 50% offset
         opacity_peak = master_mask.min() + (opacity_range * current_layer) + (opacity_range / 2)
 
         for lightness in master_mask:
-            # If lightness is within mask's opacity period...
-            if lightness > opacity_peak - (opacity_range / 2) and lightness < opacity_peak + (opacity_range / 2):
 
-                # Resolve edge case to preserve transparency in low and high lightness
-                if lightness < master_mask.min() + opacity_range / 2 or lightness > master_mask.max() - opacity_range / 2:
-                    pixels_mask.append(1)
-                else:
+            # Resolve edge case to preserve transparency in low and high lightness
+            if opacity_peak - (opacity_range / 2) <= lightness <= opacity_peak + (opacity_range / 2):
+                # If lightness is within mask's opacity period...
+                if master_mask.min() + opacity_range / 2 >= lightness >= master_mask.max() - opacity_range / 2:
                     # ... then weight opacity sinusoidally- two adjacent layers have inverse opacities, therefore preserving original value
-                    pixels_mask.append(math.cos(2 * math.pi * lightness - 2 * math.pi * opacity_peak) / 2 + .5)
-
+                    phase_shift = (master_mask.min() + opacity_range/2 + opacity_range * current_layer)
+                    pixels_mask.append(math.cos(omega * lightness - phase_shift * opacity_range) / 2 + .5)
+                    print(master_mask.min() + opacity_range/2)
+                    print(lightness)
+                else:
+                    pixels_mask.append(0)
             else:
-                # Avoid opacity contamination from periodicity in cosine
-                pixels_mask.append(0)
+                pixels_mask.append(1)
 
         # Reformat pixel list into rows and columns, then into image
         pixels_mask = np.reshape(pixels_mask, (width, height))
-
+        print(len(pixels_mask))
         mask_list.append(Image.fromarray(pixels_mask))
 
-    # Apply all transparency masks to source image
+    # Apply all transparency masks to copies of source image
     layer_list = []
     for mask in mask_list:
         mask = np.asarray(mask).reshape(width * height)
@@ -69,9 +73,9 @@ def image_decompose(source, layers):
 
         source_pixels.flags.writeable = True
 
+        # Replace alpha channel
         source_pixels[:, 3] = mask * 256
         masked_source_pixels = np.reshape(source_pixels, (width, height, 4))
-        print(masked_source_pixels)
 
         layer_list.append(Image.fromarray(masked_source_pixels, mode='RGBA'))
 
@@ -92,7 +96,7 @@ def populate_images(templates_path, metadata_pack, output_path):
             full_path = os.path.join(root, file)
 
 
-image_list = image_decompose(Image.open(r"C:\Users\mike_000\Desktop\pack.png"), 2)
+image_list = image_decompose(Image.open(r"C:\Users\mike_000\Desktop\brick.png"), 3)
 
 for num, image in enumerate(image_list):
     image.save(r"C:\Users\mike_000\Desktop\\" + str(num) + ".png")
