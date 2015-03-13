@@ -3,6 +3,7 @@ from PIL import Image
 import json
 import math
 import numpy as np
+import colorsys
 
 np.set_printoptions(threshold=np.nan)
 
@@ -26,10 +27,11 @@ def image_decompose(source, layers):
 
     master_mask_image = source.convert("L")
     width, height = source.size
+    source_alpha = np.asarray(source).reshape((width * height, 4))[:, 3]
 
     # Convert to numpy array, then normalize to range of opacity variables
-    master_mask = np.asarray(master_mask_image).astype(float).flatten() / 256
-    print(len(master_mask))
+    master_mask = np.asarray(master_mask_image).astype(float).flatten() / 255
+
     master_mask_range = master_mask.max() - master_mask.min()
 
     # Create linearly-spaced value based layer masks spread over range of source image lightness
@@ -46,7 +48,7 @@ def image_decompose(source, layers):
 
         for lightness in master_mask:
             # If lightness is within mask's opacity period...
-            if opacity_peak - (opacity_range / 2) <= lightness <= opacity_peak + (opacity_range / 2):
+            if (opacity_peak - (opacity_range / 2) <= lightness <= opacity_peak + (opacity_range / 2)):
                 # Resolve edge case to preserve transparency in low and high lightness
                 if master_mask.min() + opacity_range / 2 <= lightness <= master_mask.max() - opacity_range / 2:
                     # ... then weight opacity sinusoidally- two adjacent layers have inverse opacities, therefore preserving original value
@@ -56,9 +58,15 @@ def image_decompose(source, layers):
             else:
                 pixels_mask.append(0)
 
+        pixels_mask_filtered = []
+        for lightness, alpha in zip(pixels_mask, source_alpha):
+            if alpha == 0:
+                pixels_mask_filtered.append(0)
+            else:
+                pixels_mask_filtered.append(lightness)
+
         # Reformat pixel list into rows and columns, then into image
-        pixels_mask = np.reshape(pixels_mask, (width, height))
-        # print(pixels_mask)
+        pixels_mask = np.reshape(pixels_mask_filtered, (width, height))
         mask_list.append(Image.fromarray(pixels_mask))
 
     # Apply all transparency masks to copies of source image
@@ -79,20 +87,74 @@ def image_decompose(source, layers):
 
 
 def image_composite(layers):
-    canvas = layers[0]
-    for index in range(1, len(layers) - 1):
-        canvas = Image.alpha_composite(canvas, layers[index + 1])
-    return canvas
+    pixel_layers = np.asarray([np.asarray(layer) for layer in layers])
+
+    width, height = layers[0].size
+    canvas = np.zeros((width, height, 4))
+
+    for channel in range(2):
+        canvas[channel] = np.average(pixel_layers[:, channel], weights=pixel_layers[:, 3])
+
+    canvas[3] = np.clip(np.sum(pixel_layers[:, 3]), 0, 255)
+
+    pixels = (np.array(canvas) * 255).astype(int)
+    pixels = np.reshape(pixels, (width, height, 4))
+    return Image.fromarray(canvas, mode='RGBA')
+
+
+def colorize(image, color, opacity=1):
+    width, height = image.size
+    pixels_rgb = np.asarray(image).reshape((width * height, 4))[:, :3] / 255
+    source_alpha = np.asarray(image).reshape((width * height, 4))[:, 3] / 255
+
+    pixels_rgb_output = []
+    for pixel, alpha in zip(pixels_rgb, source_alpha):
+        hue, sat, val = colorsys.rgb_to_hsv(*pixel)
+
+        hue_input = colorsys.rgb_to_hsv(*color[:3])[0]
+        hue = (hue_input * opacity) + hue * (1 / opacity)
+
+        sat_input = colorsys.rgb_to_hsv(*color[:3])[1]
+        sat = (sat_input * opacity) + sat * (1 / opacity)
+
+        red, green, blue = colorsys.hsv_to_rgb(hue, sat, val)
+        pixels_rgb_output.append([red, green, blue, alpha])
+
+    pixels = (np.array(pixels_rgb_output) * 255).astype(int)
+    pixels = np.reshape(pixels, (width, height, 4))
+    return Image.fromarray(pixels, mode='RGBA')
+
+    # np.average(pixels_hsv[:, 0])
+
+
+def light_adjust(image, lightness, opacity=1):
+
+    return image
 
 
 def populate_images(templates_path, metadata_pack, output_path):
-    list_templates(templates_path)
+
     for root, folders, files in os.walk(metadata_pack):
         for file in files:
             full_path = os.path.join(root, file)
+            print(full_path)
+            with open(full_path, 'r') as json_file:
+                json_data = json.load(json_file)
 
+                template = Image.open(templates_path + "\\values\\" + json_data["template"])
+                layer_count = len(json_data["colors"])
+                layers = image_decompose(template, layer_count)
 
-image_list = image_decompose(Image.open(r"C:\Users\mike_000\Desktop\brick.png"), 3)
+                colorized_layers = []
+                for index, layer in enumerate(layers):
+                    colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
 
-for num, image in enumerate(image_list):
-    image.save(r"C:\Users\mike_000\Desktop\\" + str(num) + ".png")
+                output_image = image_composite(colorized_layers)
+                output_image = light_adjust(output_image, np.average(json_data["colors", :]))
+
+                full_path_output = full_path.replace(metadata_pack, output_path).replace(".json", "")
+
+                if not os.path.exists(os.path.basename(full_path_output)):
+                    os.path.makedirs(os.path.basename(full_path_output))
+
+                output_image.save(full_path_output)

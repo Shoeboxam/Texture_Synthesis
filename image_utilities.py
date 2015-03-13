@@ -5,31 +5,41 @@ import numpy as np
 
 import os
 import json
+import colorsys
 
 
 def correlate(template, candidate):
-    """Returns statistical correlation between two lists"""
+    """Returns statistical correlation between two pixel lists"""
 
     if (template.size != candidate.size):
         return 0
 
-    return pearsonr(template, candidate)[0]
+    width, height = template.size
+    template_pixels = np.asarray(template).reshape((width * height, 4))
+    candidate_pixels = np.asarray(candidate.convert('RGBA')).reshape((width * height, 4))
+
+    template_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in template_pixels]
+    candidate_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in candidate_pixels]
+
+    coefficient_rgb = pearsonr(template_pixels_value, candidate_pixels_value)[0]
+
+    # Calculate alpha relation independently to avoid contamination with colors
+    coefficient_alpha = pearsonr(template_pixels[:, 3], candidate_pixels[:, 3])[0]
+    if coefficient_alpha < .99:
+        return 0
+
+    return coefficient_rgb
 
 
 def template_detect(target, template_path, threshold):
     """Finds all occurences of templates in target directory"""
-
-    def brightnesses(path):
-        """Convert from path to list of values"""
-        image_input = Image.open(path)
-        return image_input.convert("L").getdata()
 
     # Load template images into variables
     image_keys = {}
     template_filenames = os.listdir(template_path + "\\keys\\")
     template_images = []
     for filename in template_filenames:
-        template_images.append(brightnesses(template_path + "\\keys\\" + filename))
+        template_images.append(Image.open(template_path + "\\keys\\" + filename))
 
     # Check every file against every template
     for root, folders, files in os.walk(target):
@@ -39,13 +49,15 @@ def template_detect(target, template_path, threshold):
             # template with highest correlation is selected
             highest_correlation = [0, "null"]
             for template_pixels, template_filename in zip(template_images, template_filenames):
-                relation_coefficient = correlate(template_pixels, brightnesses(full_path))
+                relation_coefficient = correlate(template_pixels, Image.open(full_path))
 
                 if relation_coefficient > highest_correlation[0]:
                     highest_correlation = [relation_coefficient, template_filename]
 
             if highest_correlation[0] > threshold:
+                print(highest_correlation)
                 image_keys[full_path.replace(target, "")] = highest_correlation[1]
+
 
     return image_keys
 
@@ -65,9 +77,18 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
 
+        lightness = 0
+        variance = 0
+
+        meta_dict = {
+            'template': template_name,
+            'colors': representative_colors,
+            'lightness': lightness,
+            'variance': variance}
+
         # Save json file
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
-            json.dump([template_name, representative_colors], output_file)
+            json.dump(meta_dict, output_file)
 
 
 def load_pixels(path):
@@ -94,4 +115,6 @@ def color_extract(color_count, target_image):
 
     # Calculate X number of representative colors deterministically
     KMeans_object = KMeans(n_clusters=color_count, random_state=0)
-    return KMeans_object.fit(pixel_list).cluster_centers_
+    representative_colors = KMeans_object.fit(pixel_list).cluster_centers_
+    print(representative_colors)
+    return representative_colors.astype(int)

@@ -12,3 +12,5 @@ metadata_pack = normpath(home + '\\resourcepacks\default_metadata\\')
 mods_directory = normpath(home + '\\mods\\')
 key_repository = normpath(expanduser(r'~\Textures\Modded-1.7.x'))
 template_path = normpath(home + r'\resourcepacks\templates')
+
+output_path = normpath(home + r'\resourcepacks\synthesized_resources\\')

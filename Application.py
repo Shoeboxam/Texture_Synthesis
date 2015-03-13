@@ -1,6 +1,7 @@
 from settings import *
 from file_utilities import *
 from image_utilities import *
+from image_operations import *
 
 from shutil import rmtree
 
@@ -18,7 +19,7 @@ def create_default():
     repository_format(temp_pack, default_pack, key_repository)
 
     # Delete staging pack
-    rmtree(temp_pack, True)
+    rmtree(temp_pack, True) 
 
 
 def create_diff():
@@ -32,16 +33,16 @@ def create_diff():
     resource_filter(diff_pack)
 
 
-def image_analysis():
+def image_synthesis():
     """Extract representative colors for every image that matches template"""
 
-    keys = template_detect(default_pack, template_path, threshold=.85)
-    build_metadata_tree(diff_pack, metadata_pack, keys)
+    # keys = template_detect(diff_pack, template_path, threshold=.85)
+    # print(keys)
+    # build_metadata_tree(diff_pack, metadata_pack, keys)
+
+    # Converts json files to images with templates
+    populate_images(template_path, metadata_pack, output_path)
 
 
-def image_synthesis():
-    """Synthesize textures from templates and metadata"""
 
-    template_index = list_templates(template_path)
-
-image_analysis()
+image_synthesis()
