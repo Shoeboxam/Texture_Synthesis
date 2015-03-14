@@ -1,5 +1,5 @@
 import os
-from PIL import Image, ImageOps
+from PIL import Image
 import json
 import math
 import numpy as np
@@ -88,19 +88,29 @@ def image_decompose(source, layers):
 
 
 def image_composite(layers):
-    pixel_layers = np.asarray([np.asarray(layer) for layer in layers])
-
     width, height = layers[0].size
-    canvas = np.zeros((width, height, 4))
+    pixel_layers = np.asarray([np.asarray(layer).reshape(width * height, 4) for layer in layers])
 
-    for channel in range(2):
-        canvas[channel] = np.average(pixel_layers[:, channel], weights=pixel_layers[:, 3])
+    canvas = []
+    for pixel_list in np.array(zip(*pixel_layers)):
+        opacity = sum(pixel_list[:, 0])
+        if opacity != 0:
+            pixel = []
 
-    canvas[3] = np.clip(np.sum(pixel_layers[:, 3]), 0, 255)
+            opacity_weight_sum = pixel_list[:, 3].sum()
+            normalized_opacity_weights = pixel_list[:, 3] / opacity_weight_sum
 
-    pixels = (np.array(canvas) * 255).astype(int)
+            pixel.append((pixel_list[:, 0] * normalized_opacity_weights).sum())
+            pixel.append((pixel_list[:, 1] * normalized_opacity_weights).sum())
+            pixel.append((pixel_list[:, 2] * normalized_opacity_weights).sum())
+            pixel.append(opacity)
+            canvas.append(pixel)
+        else:
+            canvas.append([0, 0, 0, 0])
+
+    pixels = (np.array(canvas)).astype(np.uint8)
     pixels = np.reshape(pixels, (width, height, 4))
-    return Image.fromarray(canvas, mode='RGBA')
+    return Image.fromarray(np.ascontiguousarray(pixels), mode='RGBA')
 
 
 def colorize(image, color, opacity=1):
@@ -114,21 +124,15 @@ def colorize(image, color, opacity=1):
     for r, g, b, a in channels_rgb:
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
         if a != 0:
-            # print(h, s, a)
-            # print(target_hue, target_sat)
             h = (target_hue * opacity) + h * (1 / opacity)
             s = (target_sat * opacity) + s * (1 / opacity)
-            # print(h, s)
 
         red, green, blue = colorsys.hsv_to_rgb(h, s, v)
         pixels_rgb_output.append([red, green, blue, a])
 
     pixels = (np.array(pixels_rgb_output)).astype(np.uint8)
     pixels = np.reshape(pixels, (width, height, 4))
-    print(np.array(Image.fromarray(pixels, mode='RGBA')))
     return Image.fromarray(np.ascontiguousarray(pixels), mode='RGBA')
-
-    # np.average(pixels_hsv[:, 0])
 
 
 def light_adjust(image, lightness, opacity=1):
@@ -151,19 +155,15 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 colorized_layers = []
                 for index, layer in enumerate(layers):
-                    # layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
                     colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
 
-                # Debug
-                for index, layer in enumerate(colorized_layers):
-                    layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
-
                 output_image = image_composite(colorized_layers)
-                output_image = light_adjust(output_image, np.average(json_data["colors", :]))
+                output_image = light_adjust(output_image, np.average(json_data["colors"]))
 
                 full_path_output = full_path.replace(metadata_pack, output_path).replace(".json", "")
 
-                if not os.path.exists(os.path.basename(full_path_output)):
-                    os.path.makedirs(os.path.basename(full_path_output))
+                if not os.path.exists(os.path.split(full_path_output)[0]):
+                    os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.save(full_path_output)
+                

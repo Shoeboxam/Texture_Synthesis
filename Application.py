@@ -44,5 +44,4 @@ def image_synthesis():
     populate_images(template_path, metadata_pack, output_path)
 
 
-
 image_synthesis()
