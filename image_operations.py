@@ -1,11 +1,12 @@
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 import json
 import math
 import numpy as np
 import colorsys
 
 np.set_printoptions(threshold=np.nan)
+
 
 def list_templates(template_path):
     """Returns a list of names of key-value template image pairs"""
@@ -104,25 +105,28 @@ def image_composite(layers):
 
 def colorize(image, color, opacity=1):
     width, height = image.size
-    pixels_rgb = np.asarray(image).reshape((width * height, 4))[:, :3] / 255
-    source_alpha = np.asarray(image).reshape((width * height, 4))[:, 3] / 255
+    channels_rgb = np.asarray(image).reshape(width * height, 4).astype(float)
+
+    color = [c / 255 for c in color]
+    target_hue, target_sat, target_value = colorsys.rgb_to_hsv(*color[:3])
 
     pixels_rgb_output = []
-    for pixel, alpha in zip(pixels_rgb, source_alpha):
-        hue, sat, val = colorsys.rgb_to_hsv(*pixel)
+    for r, g, b, a in channels_rgb:
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        if a != 0:
+            # print(h, s, a)
+            # print(target_hue, target_sat)
+            h = (target_hue * opacity) + h * (1 / opacity)
+            s = (target_sat * opacity) + s * (1 / opacity)
+            # print(h, s)
 
-        hue_input = colorsys.rgb_to_hsv(*color[:3])[0]
-        hue = (hue_input * opacity) + hue * (1 / opacity)
+        red, green, blue = colorsys.hsv_to_rgb(h, s, v)
+        pixels_rgb_output.append([red, green, blue, a])
 
-        sat_input = colorsys.rgb_to_hsv(*color[:3])[1]
-        sat = (sat_input * opacity) + sat * (1 / opacity)
-
-        red, green, blue = colorsys.hsv_to_rgb(hue, sat, val)
-        pixels_rgb_output.append([red, green, blue, alpha])
-
-    pixels = (np.array(pixels_rgb_output) * 255).astype(int)
+    pixels = (np.array(pixels_rgb_output)).astype(np.uint8)
     pixels = np.reshape(pixels, (width, height, 4))
-    return Image.fromarray(pixels, mode='RGBA')
+    print(np.array(Image.fromarray(pixels, mode='RGBA')))
+    return Image.fromarray(np.ascontiguousarray(pixels), mode='RGBA')
 
     # np.average(pixels_hsv[:, 0])
 
@@ -147,7 +151,12 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 colorized_layers = []
                 for index, layer in enumerate(layers):
+                    # layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
                     colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
+
+                # Debug
+                for index, layer in enumerate(colorized_layers):
+                    layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
 
                 output_image = image_composite(colorized_layers)
                 output_image = light_adjust(output_image, np.average(json_data["colors", :]))

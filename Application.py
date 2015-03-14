@@ -19,7 +19,7 @@ def create_default():
     repository_format(temp_pack, default_pack, key_repository)
 
     # Delete staging pack
-    rmtree(temp_pack, True) 
+    rmtree(temp_pack, True)
 
 
 def create_diff():

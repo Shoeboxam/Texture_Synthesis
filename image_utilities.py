@@ -9,7 +9,7 @@ import colorsys
 
 
 def correlate(template, candidate):
-    """Returns statistical correlation between two pixel lists"""
+    """Returns correlation coefficient between two pixel lists"""
 
     if (template.size != candidate.size):
         return 0
@@ -57,7 +57,6 @@ def template_detect(target, template_path, threshold):
             if highest_correlation[0] > threshold:
                 print(highest_correlation)
                 image_keys[full_path.replace(target, "")] = highest_correlation[1]
-
 
     return image_keys
 
