@@ -38,7 +38,7 @@ def image_synthesis():
 
     # keys = template_detect(diff_pack, template_path, threshold=.85)
     # print(keys)
-    # build_metadata_tree(diff_pack, metadata_pack, keys)
+    # build_metadata_tree(diff_pack, metadata_pack, keys, 5)
 
     # Converts json files to images with templates
     populate_images(template_path, metadata_pack, output_path)

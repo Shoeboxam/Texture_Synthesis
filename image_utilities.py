@@ -61,7 +61,7 @@ def template_detect(target, template_path, threshold):
     return image_keys
 
 
-def build_metadata_tree(analysis_directory, output_directory, image_keys):
+def build_metadata_tree(analysis_directory, output_directory, image_keys, sections):
     """Save representative data to json files in meta pack"""
 
     for key, template_name in image_keys.items():
@@ -70,7 +70,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys):
         output_path = os.path.split(output_directory + key)[0]
 
         # Calculate colors from image in analysis_directory
-        representative_colors = color_extract(3, key_path).tolist()
+        representative_colors = color_extract(sections, key_path).tolist()
 
         # Create folder structure
         if not os.path.exists(output_path):
@@ -107,13 +107,11 @@ def color_extract(color_count, target_image):
 
     # Retrieve opaque pixels
     pixel_list = []
-    for index in range(len(pixels)):
+    for pixel in pixels:
+        if pixel[3] > 0:
+            pixel_list.append(pixel)
 
-        if pixels[index][3] > 0:
-            pixel_list.append(pixels[index])
-
-    # Calculate X number of representative colors deterministically
+    # Calculate X number of representative colors
     KMeans_object = KMeans(n_clusters=color_count, random_state=0)
     representative_colors = KMeans_object.fit(pixel_list).cluster_centers_
-    print(representative_colors)
     return representative_colors.astype(int)

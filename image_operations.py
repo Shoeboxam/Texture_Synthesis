@@ -1,3 +1,5 @@
+import collections
+
 import os
 from PIL import Image
 import json
@@ -26,48 +28,54 @@ def list_templates(template_path):
 def image_decompose(source, layers):
     """Slice image by a given number of lightness zones"""
 
-    master_mask_image = source.convert("L")
+    pixels_rgb_output = []
+    min_lightness = 255
+
     width, height = source.size
-    source_alpha = np.asarray(source).reshape((width * height, 4))[:, 3]
 
-    # Convert to numpy array, then normalize to range of opacity variables
-    master_mask = np.asarray(master_mask_image).astype(float).flatten() / 255
+    source_pixels = np.asarray(source).reshape((width * height, 4))
+    for r, g, b, a in source_pixels:
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        if a != 0 and v < min_lightness:
+            min_lightness = v
 
-    master_mask_range = master_mask.max() - master_mask.min()
+    min_lightness /= 255.
+    print(min_lightness)
+
+    # Convert to numpy array, then normalize to 1
+    master_mask = np.asarray(source.convert("L")).astype(float).flatten() / 255
+
+    master_mask_range = master_mask.max() - min_lightness
 
     # Create linearly-spaced value based layer masks spread over range of source image lightness
     mask_list = []
-    opacity_range = master_mask_range / layers
-    omega = (2 * math.pi) / opacity_range
+    layer_range = master_mask_range / layers
+    period = (2 * math.pi) / layer_range
 
     for current_layer in range(layers):
+        print(current_layer)
         pixels_mask = []
 
-        # Peak opacity = lowest opacity + spacers - 50% offset
-        opacity_peak = master_mask.min() + (opacity_range * current_layer) + (opacity_range / 2)
-        phase_shift = master_mask.min() + opacity_range/2 + opacity_range * current_layer
+        horizontal_translation = min_lightness + layer_range * current_layer + layer_range / 2
 
+        print(str(horizontal_translation - (layer_range)) + " - " + str(horizontal_translation + (layer_range)))
+        conversion_tracker = {}
         for lightness in master_mask:
-            # If lightness is within mask's opacity period...
-            if (opacity_peak - (opacity_range / 2) <= lightness <= opacity_peak + (opacity_range / 2)):
+            # If lightness is within mask's first period...
+            if (horizontal_translation - layer_range <= lightness <= horizontal_translation + layer_range):
                 # Resolve edge case to preserve transparency in low and high lightness
-                if master_mask.min() + opacity_range / 2 <= lightness <= master_mask.max() - opacity_range / 2:
+                if min_lightness + layer_range / 2 <= lightness <= master_mask.max() - layer_range / 2:
                     # ... then weight opacity sinusoidally- two adjacent layers have inverse opacities, therefore preserving original value
-                    pixels_mask.append(math.cos(omega * lightness - phase_shift * opacity_range) / 2 + .5)
+                    pixels_mask.append(math.cos(period * (lightness - horizontal_translation)) / 2 + .5)
+                    conversion_tracker[float(lightness)] = str(math.cos(period * (lightness - horizontal_translation)) / 2 + .5)
                 else:
                     pixels_mask.append(1)
             else:
                 pixels_mask.append(0)
-
-        pixels_mask_filtered = []
-        for lightness, alpha in zip(pixels_mask, source_alpha):
-            if alpha == 0:
-                pixels_mask_filtered.append(0)
-            else:
-                pixels_mask_filtered.append(lightness)
+        print(collections.OrderedDict(conversion_tracker))
 
         # Reformat pixel list into rows and columns, then into image
-        pixels_mask = np.reshape(pixels_mask_filtered, (width, height))
+        pixels_mask = np.reshape(pixels_mask, (width, height))
         mask_list.append(Image.fromarray(pixels_mask))
 
     # Apply all transparency masks to copies of source image
@@ -88,18 +96,32 @@ def image_decompose(source, layers):
 
 
 def image_composite(layers):
+    """Combine all input layers with additive alpha blending"""
+
+    # Break image list into list of pixel lists
     width, height = layers[0].size
     pixel_layers = np.asarray([np.asarray(layer).reshape(width * height, 4) for layer in layers])
 
+    # Results for each pixel is added to canvas
     canvas = []
+
+    # Take transpose of pixel layers to produce a list of pixels in identical positions
     for pixel_list in np.array(zip(*pixel_layers)):
+
+        # Opacity is the sum of alpha channels
+        # TODO: Unit test this:
         opacity = sum(pixel_list[:, 0])
+        print(pixel_list[:, 3])
+
+        # If one of the pixels has opacity
         if opacity != 0:
             pixel = []
 
+            # Calculate weights for each pixel's colors based on alpha strength between 0 and 1
             opacity_weight_sum = pixel_list[:, 3].sum()
             normalized_opacity_weights = pixel_list[:, 3] / opacity_weight_sum
 
+            # Multiply channel values with their weights, then add together
             pixel.append((pixel_list[:, 0] * normalized_opacity_weights).sum())
             pixel.append((pixel_list[:, 1] * normalized_opacity_weights).sum())
             pixel.append((pixel_list[:, 2] * normalized_opacity_weights).sum())
@@ -132,7 +154,9 @@ def colorize(image, color, opacity=1):
 
     pixels = (np.array(pixels_rgb_output)).astype(np.uint8)
     pixels = np.reshape(pixels, (width, height, 4))
-    return Image.fromarray(np.ascontiguousarray(pixels), mode='RGBA')
+    output_image = Image.fromarray(np.ascontiguousarray(pixels), mode='RGBA')
+
+    return output_image
 
 
 def light_adjust(image, lightness, opacity=1):
@@ -153,6 +177,9 @@ def populate_images(templates_path, metadata_pack, output_path):
                 layer_count = len(json_data["colors"])
                 layers = image_decompose(template, layer_count)
 
+                for index, layer in enumerate(layers):
+                    layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
+
                 colorized_layers = []
                 for index, layer in enumerate(layers):
                     colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
@@ -166,4 +193,6 @@ def populate_images(templates_path, metadata_pack, output_path):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.save(full_path_output)
+                output_image.save('C:\Users\mike_000\Desktop\\' + "test2" + ".png")
+                1/0
                 
