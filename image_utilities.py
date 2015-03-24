@@ -1,6 +1,5 @@
 from PIL import Image
 from scipy.stats.stats import pearsonr
-from sklearn.cluster import KMeans
 import numpy as np
 
 import os
@@ -90,28 +89,51 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
             json.dump(meta_dict, output_file)
 
 
-def load_pixels(path):
-    """Load path to pixel array"""
+def list_templates(template_path):
+    """Returns a list of names of key-value template image pairs"""
+    matches = []
+    keys = os.listdir(template_path + '\\keys\\')
+    values = os.listdir(template_path + '\\values\\')
 
-    subject_image = Image.open(path)
-    subject_image = subject_image.convert("RGBA")
+    for filename_default, filename_replacer in zip(keys, values):
+        if (filename_default == filename_replacer):
+            matches.append(filename_default)
+        else:
+            print("Incomplete template pairing: " + filename_default)
 
-    # Convert to numpy array
-    return np.asarray(subject_image.getdata())
+    return matches
 
 
-def color_extract(color_count, target_image):
-    """Pass in image path, returns X number of representative colors"""
+def populate_images(templates_path, metadata_pack, output_path):
 
-    pixels = load_pixels(target_image)
+    for root, folders, files in os.walk(metadata_pack):
+        for file in files:
+            full_path = os.path.join(root, file)
 
-    # Retrieve opaque pixels
-    pixel_list = []
-    for pixel in pixels:
-        if pixel[3] > 0:
-            pixel_list.append(pixel)
+            with open(full_path, 'r') as json_file:
+                json_data = json.load(json_file)
 
-    # Calculate X number of representative colors
-    KMeans_object = KMeans(n_clusters=color_count, random_state=0)
-    representative_colors = KMeans_object.fit(pixel_list).cluster_centers_
-    return representative_colors.astype(int)
+                template = Image.open(templates_path + "\\values\\" + json_data["template"])
+                source_pixels = np.asarray(template).reshape((width * height, 4))
+
+                layer_count = len(json_data["colors"])
+                source_pixel_layers = image_decompose(source_pixels, layer_count)
+
+                for index, layer in enumerate(layers):
+                    layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
+
+                colorized_layers = []
+                for index, layer in enumerate(layers):
+                    colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
+
+                output_image = image_composite(colorized_layers)
+                output_image = light_adjust(output_image, np.average(json_data["colors"]))
+
+                full_path_output = full_path.replace(metadata_pack, output_path).replace(".json", "")
+
+                if not os.path.exists(os.path.split(full_path_output)[0]):
+                    os.makedirs(os.path.split(full_path_output)[0])
+
+                output_image.save(full_path_output)
+                output_image.save('C:\Users\mike_000\Desktop\\' + "test2" + ".png")
+                1/0
