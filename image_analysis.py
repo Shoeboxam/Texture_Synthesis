@@ -20,7 +20,7 @@ def lightness_deviation(raster):
     raster.to_hsv()
     lightnesses = raster.get_opaque()[2]
 
-    return np.std(lightnesses)
+    return lightnesses.std()
 
 
 def color_extract(raster, color_count):
@@ -30,5 +30,3 @@ def color_extract(raster, color_count):
     KMeans_object = KMeans(n_clusters=color_count, random_state=0)
     representative_colors = KMeans_object.fit(raster.get_opaque()).cluster_centers_
     return representative_colors.astype(int)
-
-
