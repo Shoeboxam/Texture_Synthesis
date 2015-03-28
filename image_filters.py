@@ -2,15 +2,14 @@ import numpy as np
 from image_analysis import *
 
 
-def colorize(raster, hue, sat, opacity=1):
+def colorize(raster, hue, sat, hue_opacity=1., sat_opacity=.5):
 
     raster.to_hsv()
 
-    for index, (h, s, v, a) in enumerate(raster.pixels):
-        if a != 0:
-            h = (hue * opacity) + h * (1 / opacity)
-            s = (sat * opacity) + s * (1 / opacity)
-        raster.pixels[index] = [h, s, v, a]
+    for index, (h, s, v) in enumerate(raster.colors):
+        h = (hue * hue_opacity) + h * (1 - hue_opacity)
+        s = (sat * sat_opacity) + s * (1 - sat_opacity)
+        raster.colors[index] = [h, s, v]
 
     return raster
 
