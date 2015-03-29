@@ -42,6 +42,17 @@ class Raster:
     def from_path(self, path):
         return self.from_image(Image.open(path))
 
+    @classmethod
+    def from_array(self, array, mode='RGB'):
+        # No normalization
+        width, height, channels = array.shape
+        pixels = np.reshape(array, (width * height, channels)).astype(float)
+        alpha = False
+        if channels is 4:
+            mode += 'A'
+            alpha = True
+        return self(pixels, width, height, mode, channels, alpha=alpha)
+
     # Combines alpha channel with color
     def with_alpha(self):
         if self.alpha:

@@ -7,6 +7,6 @@ img = colorize(img, .8, .5, .2, .3, .01, 0)
 PIL = img.get_image()
 
 # Tester
-print(mean_hue((.23, .51, .98)))
+print(circular_mean((.23, .51, .98)))
 
 PIL.show()
