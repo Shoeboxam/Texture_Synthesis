@@ -1,18 +1,25 @@
 import numpy as np
 from image_analysis import *
+from color_utilities import *
 
 
-def colorize(raster, hue, sat, hue_opacity=1., sat_opacity=.5):
+def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
 
     raster.to_hsv()
 
     for index, (h, s, v) in enumerate(raster.colors):
-        h = (hue * hue_opacity) + h * (1 - hue_opacity)
+        h = mean_hue([h, hue], [hue_opacity, 1 - hue_opacity])
+        print(h)
         s = (sat * sat_opacity) + s * (1 - sat_opacity)
+        v = (val * val_opacity) + v * (1 - val_opacity)
         raster.colors[index] = [h, s, v]
 
     return raster
 
+
+def contrast(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
+
+    return
 
 def image_decompose(raster, layers):
     """Slice image by a given number of lightness zones"""
@@ -33,11 +40,6 @@ def mask_alpha(raster, mask):
         raster.pixels[index] = [r, g, b, a * transparency]
 
     return raster
-
-
-def light_adjust(image, lightness, opacity=1):
-
-    return image
 
 
 def image_composite(raster_list):

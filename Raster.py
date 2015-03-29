@@ -80,3 +80,8 @@ class Raster:
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
                 self.colors[index] = [r, g, b]
                 self.mode = 'RGB'
+
+    # Optional fragment-based manipulation
+    def filter(self, func, *args):
+        for index, (a, b, c) in enumerate(self.colors):
+            self.colors[index] = func((a, b, c), *args)
