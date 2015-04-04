@@ -2,7 +2,7 @@ Texture Synthesis
 =================
 
 
-Collection of scripts to generate sprites for Soartex mod support.
+Procedural sprite generation for Soartex mod support through Python.
 
 
 1. Unzip all mod zips
@@ -19,10 +19,20 @@ Collection of scripts to generate sprites for Soartex mod support.
 12. Adjust contrast and lightness to match mod sprite
 13. Save image result to output directory tree
 
+
+TODO
+---------------
+
+- Clean up raster class/contrast  
+- Circular color sort  
+- Fix image decomposite  
+- General code cleanup/documentation  
+
+
 Dependencies
 ---------------
 
-[Pillow](https://pillow.readthedocs.org/): image loading and saving
-[Numpy](http://www.numpy.org): numerical arrays for image processing
-[Scikit-Learn](http://scikit-learn.org/stable/): image detection and analysis
-[Matplotlib](http://matplotlib.org): unit testing
+[Pillow](https://pillow.readthedocs.org/): image loading and saving  
+[Numpy](http://www.numpy.org): numerical arrays for image processing  
+[Scikit-Learn](http://scikit-learn.org/stable/): image detection and analysis  
+[Matplotlib](http://matplotlib.org): unit testing  
