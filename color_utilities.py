@@ -2,20 +2,43 @@ from math import cos
 from math import sin
 from math import atan
 from math import pi
+import numpy as np
 
 # def hsv_to_rgb(h, s, v):
 
 # def rgb_to_hsv(r, g, b):
+
+
+def smooth_hill(minima, maxima, value):
+    '''Map value to sinusoidal wave with period start/end at given extrema in range of 0 to 1'''
+    period = (2 * pi) / (maxima - minima)
+    return 1 - (cos(period * (value - minima)) * .5 + .5)
+
+
+def smooth_hole(minima, maxima, value):
+    period = (2 * pi) / (maxima - minima)
+    return cos(period * (value - minima)) * .5 + .5
+
+
+def smooth_rise(minima, maxima, value):
+    period = pi / (maxima - minima)
+    return 1 - (cos(period * (value - minima)) * .5 + .5)
+
+
+def smooth_fall(minima, maxima, value):
+    period = pi / (maxima - minima)
+    return cos(period * (value - minima)) * .5 + .5
+
 
 def linear_mean(values, weights=None):
     if weights is None:
         weights = [1] * len(values)
 
     # Total of 1
-    normalized_weights = weights / weights.sum()
+    normalized_weights = np.array(weights) / sum(weights)
 
     # Multiply channel values with their weights, then add together
-    return (values * normalized_weights).sum()
+    return sum(values * normalized_weights)
 
 
 # Computes weighted circular average

@@ -1,33 +1,59 @@
-import numpy as np
 from image_analysis import *
 from color_utilities import *
+from math import cos
+from math import sin
 
 
 def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
 
     raster.to_hsv()
 
+    # Modify each pixel
     for index, (h, s, v) in enumerate(raster.colors):
+
+        # Blend in values at given opacity
         h = circular_mean([h, hue], [hue_opacity, 1 - hue_opacity])
-        s = (sat * sat_opacity) + s * (1 - sat_opacity)
-        v = (val * val_opacity) + v * (1 - val_opacity)
+        s = linear_mean([sat, s], [sat_opacity, 1 - sat_opacity])
+        v = linear_mean([val, v], [val_opacity, 1 - val_opacity])
+
         raster.colors[index] = [h, s, v]
 
     return raster
 
 
-def contrast(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
+def contrast(raster, hue_mult, sat_mult, val_mult):
+
+    def clamp(value, lower, upper):
+        return max(min(value, upper), lower)
 
     raster.to_hsv()
 
     avg_hue = hue_mean(raster)
-    avg_val = val_mean(raster)
     avg_sat = sat_mean(raster)
+    avg_val = val_mean(raster)
 
+    period_hue = 1
+    period_sat = pi / min([avg_sat, 1 - avg_sat])
+    period_val = pi / min([avg_val, 1 - avg_val])
+
+    min_sat = min(raster.channel('S'))
+    min_val = min(raster.channel('V'))
+
+    # Modify each pixel
     for index, (h, s, v) in enumerate(raster.colors):
-        # TODO: Deviate data
-        pass
-    return
+
+        # Blend in values at given opacity
+        h = h
+        s -= sin(period_sat * (s - min_sat)) * sat_mult
+        v -= sin(period_val * (v - min_val)) * val_mult
+        print(s)
+
+        s = clamp(s, 0, 1)
+        v = clamp(v, 0, 1)
+
+        raster.colors[index] = [h, s, v]
+    
+    return raster
 
 
 def mask_alpha(raster, mask):
@@ -35,6 +61,7 @@ def mask_alpha(raster, mask):
         raster.mask[index] = [alpha * transparency]
 
     return raster
+
 
 def image_decompose(raster, layers):
     """Slice image by a given number of lightness zones"""

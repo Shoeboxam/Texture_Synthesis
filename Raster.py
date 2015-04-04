@@ -6,7 +6,6 @@ import colorsys
 class Raster:
 
     def __init__(self, pixels, width, height, mode, channels, bits=8, alpha=False):
-
         # Split pixel data's mask away from color information
         self.colors = pixels[:, :channels - alpha]
         if alpha:
@@ -76,7 +75,14 @@ class Raster:
         return Image.fromarray(np.ceil(pixels * (2**self.bits - 1)).astype(np.uint8), mode=mode)
 
     def get_opaque(self, threshold=0):
-        return self.pixels[np.reshape(self.mask, (self.mask.shape[0], 1)) > threshold]
+        return self.colors[np.reshape(self.mask, (self.mask.shape[0], 1)) > threshold]
+
+
+    def channel(self, ident):
+        column = self.mode.index(ident)
+        print(column)
+        return self.colors[:, column]
+
 
     def to_hsv(self):
         if self.mode == 'RGB':
