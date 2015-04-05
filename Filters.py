@@ -3,9 +3,9 @@ from color_utilities import *
 from math import cos
 from math import sin
 from math import pi
-
 import copy
 
+from Raster import *
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
 
@@ -92,6 +92,9 @@ def image_decompose(raster, layers):
 def image_composite(raster_list):
     """Combine all input layers with additive alpha blending"""
 
+    width = raster_list[0].width
+    height = raster_list[0].height
+
     pixel_layers = []
     for raster in raster_list:
         pixel_layers.append(raster.with_alpha())
@@ -99,9 +102,8 @@ def image_composite(raster_list):
     pixel_accumulator = []
 
     # Take transpose of pixel layers to produce a list of corresponding pixels
-    for pixel_profile in zip(*pixel_layers):
+    for pixel_profile in np.array(zip(*pixel_layers)):
 
-        print(pixel_profile)
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
 
@@ -121,4 +123,4 @@ def image_composite(raster_list):
         else:
             pixel_accumulator.append([0, 0, 0, 0])
 
-    return Raster.fromarray(pixel_accumulator, 'HSV')
+    return Raster(pixel_accumulator, width, height, 'HSV', channels=4, bits=8, alpha=True)

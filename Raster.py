@@ -6,6 +6,9 @@ import colorsys
 class Raster:
 
     def __init__(self, pixels, width, height, mode, channels, bits=8, alpha=False):
+        
+        pixels = np.array(pixels)
+
         # Split pixel data's mask away from color information
         self.colors = pixels[:, :channels - alpha]
         self.mask = None
@@ -32,7 +35,6 @@ class Raster:
         if mode.endswith('A'):
             alpha = True
             mode = mode.replace('A', '')
-            print(mode)
 
         bits = bit_depth[image.mode]
         pixels = np.asarray(image).reshape(width * height, channels).astype(float) / (2**bits - 1)
@@ -45,8 +47,11 @@ class Raster:
 
     @classmethod
     def from_array(self, array, mode='RGB'):
+
+        array = np.array(array)
         # No normalization
-        width, height, channels = array.shape
+        width, height = array.shape
+        channels = len(array[0, 0])
         pixels = np.reshape(array, (width * height, channels)).astype(float)
         alpha = False
         if channels == 4:

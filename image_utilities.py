@@ -131,11 +131,11 @@ def populate_images(templates_path, metadata_pack, output_path):
                     colorized_layers.append(layer)
 
                 output_image = image_composite(colorized_layers)
-                output_image = light_adjust(output_image, np.average(json_data['colors']))
+                # output_image = light_adjust(output_image, np.average(json_data['colors']))
 
                 full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
 
                 if not os.path.exists(os.path.split(full_path_output)[0]):
                     os.makedirs(os.path.split(full_path_output)[0])
 
-                output_image.save(full_path_output)
+                output_image.get_image().save(full_path_output)
