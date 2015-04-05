@@ -1,5 +1,4 @@
 from sklearn.cluster import KMeans
-
 from color_utilities import *
 
 
@@ -14,7 +13,7 @@ def hue_mean(raster):
     raster.to_hsv()
 
     hues = raster.get_opaque()
-    print(hues)
+
     return circular_mean(hues, raster.mask)
 
 
@@ -29,11 +28,11 @@ def val_mean(raster):
 
 
 # RMS contrast measure
-def lightness_deviation(raster):
+def lightness_variance(raster):
     raster.to_hsv()
-    lightnesses = raster.get_opaque()[2]
+    lightnesses = raster.channel('V')
 
-    return lightnesses.std()
+    return lightnesses.std() / linear_mean(lightnesses, raster.mask)
 
 
 def color_extract(raster, color_count):

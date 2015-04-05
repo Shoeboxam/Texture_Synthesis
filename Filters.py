@@ -7,7 +7,7 @@ from math import pi
 import copy
 
 
-def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
+def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
 
     raster.to_hsv()
 
@@ -47,7 +47,6 @@ def contrast(raster, hue_mult, sat_mult, val_mult):
         h = h
         s -= sin(period_sat * (s - min_sat)) * sat_mult
         v -= sin(period_val * (v - min_val)) * val_mult
-        print(s)
 
         s = clamp(s, 0, 1)
         v = clamp(v, 0, 1)
@@ -95,13 +94,14 @@ def image_composite(raster_list):
 
     pixel_layers = []
     for raster in raster_list:
-        pixel_layers.append(raster.pixels)
+        pixel_layers.append(raster.with_alpha())
 
     pixel_accumulator = []
 
     # Take transpose of pixel layers to produce a list of corresponding pixels
     for pixel_profile in zip(*pixel_layers):
 
+        print(pixel_profile)
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
 

@@ -64,12 +64,14 @@ def circular_mean(values, weights=None):
     for val, weight in zip(values, weights):
         x.append(cos(val * period) * weight / normalizer)
         y.append(sin(val * period) * weight / normalizer)
-
     try:
         offset = (atan(sum(y) / sum(x))) / period
     # Catch Undefined tan(90) and tan(270)
     except ZeroDivisionError:
-        offset = sum(values) / len(values)
+        try:
+            offset = sum(values) / len(values)
+        except:
+            offset = 0
 
     # Adjust domain of offset
     if sum(x) < 0:

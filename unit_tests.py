@@ -8,6 +8,7 @@ import numpy as np
 np.set_printoptions(precision=3)
 np.set_printoptions(suppress=True)
 
+
 def smooth_point():
     minima = 0.399
     maxima = 0.42

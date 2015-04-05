@@ -6,6 +6,9 @@ import os
 import json
 import colorsys
 
+from Raster import *
+from Filters import *
+
 
 def correlate(template, candidate):
     """Returns correlation coefficient between two pixel lists"""
@@ -54,7 +57,6 @@ def template_detect(target, template_path, threshold):
                     highest_correlation = [relation_coefficient, template_filename]
 
             if highest_correlation[0] > threshold:
-                print(highest_correlation)
                 image_keys[full_path.replace(target, "")] = highest_correlation[1]
 
     return image_keys
@@ -65,18 +67,17 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
     for key, template_name in image_keys.items():
 
-        key_path = analysis_directory + key
         output_path = os.path.split(output_directory + key)[0]
+        key = Raster.from_path(analysis_directory + key)
 
         # Calculate colors from image in analysis_directory
-        representative_colors = color_extract(sections, key_path).tolist()
+        representative_colors = color_extract(key, sections).tolist()
+        variance = lightness_variance(key)
+        lightness = val_mean(key)
 
         # Create folder structure
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-
-        lightness = 0
-        variance = 0
 
         meta_dict = {
             'template': template_name,
@@ -113,27 +114,28 @@ def populate_images(templates_path, metadata_pack, output_path):
             with open(full_path, 'r') as json_file:
                 json_data = json.load(json_file)
 
-                template = Image.open(templates_path + "\\values\\" + json_data["template"])
-                source_pixels = np.asarray(template).reshape((width * height, 4))
+                template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
 
-                layer_count = len(json_data["colors"])
-                source_pixel_layers = image_decompose(source_pixels, layer_count)
-
-                for index, layer in enumerate(layers):
-                    layer.save('C:\Users\mike_000\Desktop\\' + str(index) + ".png")
+                layer_count = len(json_data['colors'])
+                template_pieces = image_decompose(template, layer_count)
 
                 colorized_layers = []
-                for index, layer in enumerate(layers):
-                    colorized_layers.append(colorize(layer, json_data["colors"][index], .9))
+                for index, layer in enumerate(template_pieces):
+
+                    h, s, v = colorsys.rgb_to_hsv(*json_data['colors'][index][:3])
+                    layer = colorize(layer, h, s, v, 1., .8, .2)
+
+                    contrast_mult = lightness_variance(template) - json_data['variance']
+                    layer = contrast(layer, 0., 0., contrast_mult)
+
+                    colorized_layers.append(layer)
 
                 output_image = image_composite(colorized_layers)
-                output_image = light_adjust(output_image, np.average(json_data["colors"]))
+                output_image = light_adjust(output_image, np.average(json_data['colors']))
 
-                full_path_output = full_path.replace(metadata_pack, output_path).replace(".json", "")
+                full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
 
                 if not os.path.exists(os.path.split(full_path_output)[0]):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.save(full_path_output)
-                output_image.save('C:\Users\mike_000\Desktop\\' + "test2" + ".png")
-                1/0
