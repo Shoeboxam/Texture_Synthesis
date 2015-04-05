@@ -2,6 +2,9 @@ from image_analysis import *
 from color_utilities import *
 from math import cos
 from math import sin
+from math import pi
+
+import copy
 
 
 def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=.5):
@@ -12,6 +15,7 @@ def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=
     for index, (h, s, v) in enumerate(raster.colors):
 
         # Blend in values at given opacity
+        # TODO: Slide range to val instead of set range to val
         h = circular_mean([h, hue], [hue_opacity, 1 - hue_opacity])
         s = linear_mean([sat, s], [sat_opacity, 1 - sat_opacity])
         v = linear_mean([val, v], [val_opacity, 1 - val_opacity])
@@ -22,9 +26,6 @@ def colorize(raster, hue, sat, val, hue_opacity=1., sat_opacity=.5, val_opacity=
 
 
 def contrast(raster, hue_mult, sat_mult, val_mult):
-
-    def clamp(value, lower, upper):
-        return max(min(value, upper), lower)
 
     raster.to_hsv()
 
@@ -52,13 +53,6 @@ def contrast(raster, hue_mult, sat_mult, val_mult):
         v = clamp(v, 0, 1)
 
         raster.colors[index] = [h, s, v]
-    
-    return raster
-
-
-def mask_alpha(raster, mask):
-    for index, (alpha, transparency) in enumerate(zip(raster.mask, mask)):
-        raster.mask[index] = [alpha * transparency]
 
     return raster
 
@@ -68,13 +62,32 @@ def image_decompose(raster, layers):
 
     minimum, maximum = lightness_extrema(raster)
 
-    raster_components = []
-    for layer in range(layers):
-        # CREATE MASK
-        mask
+    brightnesses = raster.channel('V')
 
-        # APPLY MASK
-        raster_components.append(mask_alpha(raster, mask))
+    raster_components = []
+    layer_range = (maximum - minimum) / layers
+    period = pi / layer_range
+
+    for layer in range(layers):
+        new_image = copy.deepcopy(raster)
+
+        # Starting offset + layer spacings + half spacing
+        horizontal_translation = minimum + layer_range * layer + layer_range / 2
+
+        for index, lightness in enumerate(brightnesses):
+            # If lightness is within mask's first period...
+            if horizontal_translation - layer_range <= lightness <= horizontal_translation + layer_range:
+                # Resolve edge case to preserve transparency in low and high lightness
+                if minimum + layer_range / 2 <= lightness <= maximum - layer_range * .5:
+                    bright_mask = cos(period * (lightness - horizontal_translation)) * .5 + .5
+                else:
+                    bright_mask = 1
+            else:
+                bright_mask = 0
+            new_image.mask[index] = clamp(new_image.mask[index] * bright_mask)
+        raster_components.append(new_image)
+
+    return raster_components
 
 
 def image_composite(raster_list):

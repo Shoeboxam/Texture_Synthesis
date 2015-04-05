@@ -9,6 +9,10 @@ import numpy as np
 # def rgb_to_hsv(r, g, b):
 
 
+def clamp(value, lower=0., upper=1.):
+        return max(min(value, upper), lower)
+
+
 def smooth_hill(minima, maxima, value):
     '''Map value to sinusoidal wave with period start/end at given extrema in range of 0 to 1'''
     period = (2 * pi) / (maxima - minima)

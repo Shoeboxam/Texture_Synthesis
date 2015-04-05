@@ -8,6 +8,7 @@ class Raster:
     def __init__(self, pixels, width, height, mode, channels, bits=8, alpha=False):
         # Split pixel data's mask away from color information
         self.colors = pixels[:, :channels - alpha]
+        self.mask = None
         if alpha:
             self.mask = pixels[:, channels - 1]
         self.width = width
@@ -28,9 +29,10 @@ class Raster:
         channels = channel_depth[image.mode]
 
         alpha = False
-        if mode == 'RGBA':
+        if mode.endswith('A'):
             alpha = True
-            mode = 'RGB'
+            mode = mode.replace('A', '')
+            print(mode)
 
         bits = bit_depth[image.mode]
         pixels = np.asarray(image).reshape(width * height, channels).astype(float) / (2**bits - 1)
@@ -47,13 +49,14 @@ class Raster:
         width, height, channels = array.shape
         pixels = np.reshape(array, (width * height, channels)).astype(float)
         alpha = False
-        if channels is 4:
+        if channels == 4:
             mode += 'A'
             alpha = True
         return self(pixels, width, height, mode, channels, alpha=alpha)
 
     # Combines alpha channel with color
     def with_alpha(self):
+        mask = None
         if self.alpha:
             mask = np.reshape(self.mask, (self.mask.shape[0], 1))
         else:
@@ -77,22 +80,19 @@ class Raster:
     def get_opaque(self, threshold=0):
         return self.colors[np.reshape(self.mask, (self.mask.shape[0], 1)) > threshold]
 
-
-    def channel(self, ident):
-        column = self.mode.index(ident)
-        print(column)
+    def channel(self, identifier):
+        column = self.mode.index(identifier)
         return self.colors[:, column]
 
-
     def to_hsv(self):
-        if self.mode == 'RGB':
+        if 'RGB' in self.mode:
             for index, (r, g, b) in enumerate(self.colors):
                 h, s, v = colorsys.rgb_to_hsv(r, g, b)
                 self.colors[index] = [h, s, v]
                 self.mode = 'HSV'
 
     def to_rgb(self):
-        if self.mode == 'HSV':
+        if 'HSV' in self.mode:
             for index, (h, s, v) in enumerate(self.colors):
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
                 self.colors[index] = [r, g, b]

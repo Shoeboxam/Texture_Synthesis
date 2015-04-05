@@ -6,7 +6,7 @@ from color_utilities import *
 def lightness_extrema(raster):
     raster.to_hsv()
 
-    lightnesses = raster.get_opaque()[2]
+    lightnesses = raster.channel('V')
     return [min(lightnesses), max(lightnesses)]
 
 

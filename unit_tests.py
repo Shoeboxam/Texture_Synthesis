@@ -5,6 +5,8 @@ from color_utilities import *
 import matplotlib.pyplot as plt
 import numpy as np
 
+np.set_printoptions(precision=3)
+np.set_printoptions(suppress=True)
 
 def smooth_point():
     minima = 0.399
@@ -22,12 +24,37 @@ def smooth_point():
     plt.show()
 
 
-img = Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
-img = colorize(img, 1, .5, .2, .3, .01, 0)
-img = contrast(img, 1, .08, 0.12)
-PIL = img.get_image()
+def alpha_mask_test():
+    arr = np.zeros((100, 4))
+    arr[:, 0] = .5
+    arr[:, 1] = .0
+    arr[:, 2] = np.linspace(0, 1, 100)
+    arr[:, 3] = 1.
+    arr = np.reshape(arr, (10, 10, 4))
+    img = Raster.from_array(arr, 'HSV')
+    img_list = image_decompose(img, 2)
 
-# Tester
-print(circular_mean((.23, .51, .98)))
+    for index, section in enumerate(img_list):
+        rgb_img = section
+        rgb_img.to_rgb()
+        PIL = rgb_img.get_image()
+        PIL.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
 
-PIL.show()
+alpha_mask_test()
+
+
+def image_process():
+    img = Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
+    img = colorize(img, 1, .1, .2, .3, .01, 0)
+    img = contrast(img, 1, .2, 0.12)
+
+    img_set = image_decompose(img, 5)
+    print(img_set)
+    for index, section in enumerate(img_set):
+        PIL = section.get_image()
+        PIL.show()
+        PIL.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
+    PIL = img.get_image()
+
+    # Tester
+    print(circular_mean((.23, .51, .98)))
