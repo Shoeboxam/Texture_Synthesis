@@ -36,13 +36,17 @@ def smooth_fall(minima, maxima, value):
 
 def linear_mean(values, weights=None):
     if weights is None:
+        # print("No weights")
         weights = [1] * len(values)
 
     # Total of 1
-    normalized_weights = np.array(weights) / sum(weights)
+    normalized_weights = np.array(weights) / float(sum(weights))
+    # print("Val: " + str(values))
+    # print("Wts: " + str(normalized_weights))
+    # print("Equ: " + str(np.dot(values, normalized_weights)))
 
-    # Multiply channel values with their weights, then add together
-    return sum(values * normalized_weights)
+    # Multiply channel values with their weights, then add together via dot product
+    return np.dot(values, normalized_weights)
 
 
 # Computes weighted circular average

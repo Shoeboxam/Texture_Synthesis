@@ -87,7 +87,7 @@ class Raster:
         for color, alpha in zip(self.colors, self.mask):
             if alpha != 0:
                 solid.append(color)
-        return solid
+        return np.array(solid)
 
     def channel(self, identifier):
         column = self.mode.index(identifier)

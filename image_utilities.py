@@ -121,18 +121,24 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 colorized_layers = []
                 for index, layer in enumerate(template_pieces):
-                    layer.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
+                    # layer.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
 
-                    h, s, v = colorsys.rgb_to_hsv(*json_data['colors'][index][:3])
-                    layer = colorize(layer, h, s, v, 1., 1., 0.2)
+                    h, s, v = (json_data['colors'][index][:3])
+                    h /= 255.
+                    s /= 255.
+                    v /= 255.
+
+                    print(json_data['colors'][index][:3])
+                    print(h, s, v)
+                    layer = colorize(layer, h, s, v, 1., .5, 0.0)
 
                     # contrast_mult = lightness_variance(template) - json_data['variance']
                     # layer = contrast(layer, 0., 0., contrast_mult)
-                    # layer.get_image().show()
 
                     colorized_layers.append(layer)
 
                 output_image = image_composite(colorized_layers)
+                # output_image.get_image().save(r"C:\Users\mike_000\Desktop\singular.png")
                 # output_image = light_adjust(output_image, np.average(json_data['colors']))
 
                 full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
@@ -141,4 +147,4 @@ def populate_images(templates_path, metadata_pack, output_path):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.get_image().save(full_path_output)
-                1/0
+                

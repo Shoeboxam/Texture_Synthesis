@@ -1,11 +1,12 @@
 from sklearn.cluster import KMeans
-from color_utilities import *
+from math_utilities import *
 
 
 def lightness_extrema(raster):
     raster.to_hsv()
 
-    lightnesses = raster.get_opaque()[2]
+    lightnesses = raster.get_opaque()[:, 2]
+    # print(lightnesses)
     return [min(lightnesses), max(lightnesses)]
 
 

@@ -1,5 +1,5 @@
 from image_analysis import *
-from color_utilities import *
+from math_utilities import *
 from math import cos
 from math import sin
 from math import pi
@@ -16,7 +16,7 @@ def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opa
 
         # Blend in values at given opacity
         # TODO: Slide range to val instead of set range to val
-        h = circular_mean([h, hue], [hue_opacity, 1 - hue_opacity])
+        h = circular_mean([hue, h], [hue_opacity, 1 - hue_opacity])
         s = linear_mean([sat, s], [sat_opacity, 1 - sat_opacity])
         v = linear_mean([val, v], [val_opacity, 1 - val_opacity])
 
@@ -60,12 +60,16 @@ def image_decompose(raster, layers):
     """Slice image by a given number of lightness zones"""
 
     minimum, maximum = lightness_extrema(raster)
+    # print("Minimum: " + str(minimum))
+    # print("Maximum: " + str(maximum))
 
     brightnesses = raster.channel('V')
 
     raster_components = []
     layer_range = (maximum - minimum) / layers
     period = pi / layer_range
+    # print("Layer Range: " + str(layer_range))
+    # print("Period: " + str(period))
 
     for layer in range(layers):
         new_image = copy.deepcopy(raster)
@@ -84,6 +88,8 @@ def image_decompose(raster, layers):
             else:
                 bright_mask = 0
             new_image.mask[index] = clamp(new_image.mask[index] * bright_mask)
+        # print("Horizontal Translation: " + str(horizontal_translation))
+        # print(new_image.mask)
         raster_components.append(new_image)
 
     return raster_components
@@ -104,9 +110,10 @@ def image_composite(raster_list):
     # Take transpose of pixel layers to produce a list of corresponding pixels
     for pixel_profile in np.array(zip(*pixel_layers)):
 
+        # print(pixel_profile[:, 3])  # View alpha values of pixel profile
+
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
-        print(pixel_profile)
 
         # If one of the pixels has opacity
         if opacity != 0:
@@ -114,14 +121,16 @@ def image_composite(raster_list):
 
             # Treat opacity as weight
             weights = pixel_profile[:, 3]
+            # print(pixel_profile)
 
             # Condense profile down into one representative pixel
-            pixel.append(circular_mean(pixel_profile[:, 0], weights))  # H
-            pixel.append(linear_mean(pixel_profile[:, 1], weights))    # S
-            pixel.append(linear_mean(pixel_profile[:, 2], weights))    # V
+            pixel.append(circular_mean(pixel_profile[:, 0], weights))  # R
+            pixel.append(linear_mean(pixel_profile[:, 1], weights))    # G
+            pixel.append(linear_mean(pixel_profile[:, 2], weights))    # B
             pixel.append(clamp(opacity))                               # A
             pixel_accumulator.append(pixel)
+            # print(pixel)
         else:
             pixel_accumulator.append([0, 0, 0, 0])
 
-    return Raster(pixel_accumulator, width, height, 'HSV', channels=4, bits=8, alpha=True)
+    return Raster(pixel_accumulator, width, height, raster_list[0].mode, channels=4, bits=8, alpha=True)
