@@ -6,7 +6,7 @@ import colorsys
 class Raster:
 
     def __init__(self, pixels, width, height, mode, channels, bits=8, alpha=False):
-        
+
         pixels = np.array(pixels)
 
         # Split pixel data's mask away from color information
@@ -50,8 +50,8 @@ class Raster:
 
         array = np.array(array)
         # No normalization
-        width, height = array.shape
-        channels = len(array[0, 0])
+        width, height, channels = array.shape
+        # channels = len(array[0, 0])
         pixels = np.reshape(array, (width * height, channels)).astype(float)
         alpha = False
         if channels == 4:
@@ -83,7 +83,11 @@ class Raster:
         return Image.fromarray(np.ceil(pixels * (2**self.bits - 1)).astype(np.uint8), mode=mode)
 
     def get_opaque(self, threshold=0):
-        return self.colors[np.reshape(self.mask, (self.mask.shape[0], 1)) > threshold]
+        solid = []
+        for color, alpha in zip(self.colors, self.mask):
+            if alpha != 0:
+                solid.append(color)
+        return solid
 
     def channel(self, identifier):
         column = self.mode.index(identifier)

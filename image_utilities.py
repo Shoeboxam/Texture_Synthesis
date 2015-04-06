@@ -121,12 +121,14 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 colorized_layers = []
                 for index, layer in enumerate(template_pieces):
+                    layer.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
 
                     h, s, v = colorsys.rgb_to_hsv(*json_data['colors'][index][:3])
-                    layer = colorize(layer, h, s, v, 1., .8, .2)
+                    layer = colorize(layer, h, s, v, 1., 1., 0.2)
 
-                    contrast_mult = lightness_variance(template) - json_data['variance']
-                    layer = contrast(layer, 0., 0., contrast_mult)
+                    # contrast_mult = lightness_variance(template) - json_data['variance']
+                    # layer = contrast(layer, 0., 0., contrast_mult)
+                    # layer.get_image().show()
 
                     colorized_layers.append(layer)
 
@@ -139,3 +141,4 @@ def populate_images(templates_path, metadata_pack, output_path):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.get_image().save(full_path_output)
+                1/0

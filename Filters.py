@@ -106,6 +106,7 @@ def image_composite(raster_list):
 
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
+        print(pixel_profile)
 
         # If one of the pixels has opacity
         if opacity != 0:
@@ -118,7 +119,7 @@ def image_composite(raster_list):
             pixel.append(circular_mean(pixel_profile[:, 0], weights))  # H
             pixel.append(linear_mean(pixel_profile[:, 1], weights))    # S
             pixel.append(linear_mean(pixel_profile[:, 2], weights))    # V
-            pixel.append(opacity)                                      # A
+            pixel.append(clamp(opacity))                               # A
             pixel_accumulator.append(pixel)
         else:
             pixel_accumulator.append([0, 0, 0, 0])

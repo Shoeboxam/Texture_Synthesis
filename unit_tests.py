@@ -41,7 +41,7 @@ def alpha_mask_test():
         PIL = rgb_img.get_image()
         PIL.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
 
-alpha_mask_test()
+# alpha_mask_test()
 
 
 def image_process():
@@ -59,3 +59,21 @@ def image_process():
 
     # Tester
     print(circular_mean((.23, .51, .98)))
+
+def recompose():
+    arr = np.zeros((100, 4))
+    arr[:, 0] = .5
+    arr[:, 1] = .0
+    arr[:, 2] = np.linspace(.5, 1, 100)
+    arr[:, 3] = 1.
+    arr = np.reshape(arr, (10, 10, 4))
+    img = Raster.from_array(arr, 'HSV')
+
+    img_list = image_decompose(img, 5)
+
+    for index, img in enumerate(img_list):
+        img.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
+    recombined = image_composite(img_list)
+
+    recombined.get_image().save(r"C:\Users\mike_000\Desktop\recombined.png")
+recompose() 
