@@ -36,10 +36,12 @@ def lightness_variance(raster):
     return lightnesses.std() / linear_mean(lightnesses, raster.mask)
 
 
+
 def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 
     # Calculate X number of representative colors
     KMeans_object = KMeans(n_clusters=color_count, random_state=0)
+    print(raster.get_opaque())
     representative_colors = KMeans_object.fit(raster.get_opaque()).cluster_centers_
     return representative_colors.astype(int)

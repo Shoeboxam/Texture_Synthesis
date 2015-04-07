@@ -23,14 +23,14 @@ def correlate(template, candidate):
     template_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in template_pixels]
     candidate_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in candidate_pixels]
 
-    coefficient_rgb = pearsonr(template_pixels_value, candidate_pixels_value)[0]
+    coefficient_value = pearsonr(template_pixels_value, candidate_pixels_value)[0]
 
     # Calculate alpha relation independently to avoid contamination with colors
     coefficient_alpha = pearsonr(template_pixels[:, 3], candidate_pixels[:, 3])[0]
     if coefficient_alpha < .99:
         return 0
 
-    return coefficient_rgb
+    return coefficient_value
 
 
 def template_detect(target, template_path, threshold):
@@ -68,12 +68,46 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
     for key, template_name in image_keys.items():
 
         output_path = os.path.split(output_directory + key)[0]
-        key = Raster.from_path(analysis_directory + key)
+        img = Raster.from_path(analysis_directory + key)
 
         # Calculate colors from image in analysis_directory
-        representative_colors = color_extract(key, sections).tolist()
-        variance = lightness_variance(key)
-        lightness = val_mean(key)
+        colors = color_extract(img, sections)[:, :3]
+
+        hues = []
+        sats = []
+        vals = []
+
+        for color in colors:
+            r, g, b = color
+            h, s, v = colorsys.rgb_to_hsv(r, g, b)
+            hues.append(h)
+            sats.append(s)
+            vals.append(v)
+
+        hues = sorted(hues)
+        sats = sorted(sats)
+        vals = sorted(vals)
+
+        hue_mean = circular_mean(hues)
+        hue_mean += .5
+        hue_mean %= 1.
+
+        first_index = 0
+        # Find first index in listing
+        for index, value in enumerate(hues):
+            if value >= hue_mean:
+                first_index = index
+                break
+
+        sorted_hues = []
+        for index in range(len(hues)):
+            sorted_hues.append(hues[(first_index + index) % len(hues)])
+
+        print(key, template_name)
+        print(sorted_hues, sats, vals)
+
+        variance = lightness_variance(img)
+        lightness = val_mean(img)
 
         # Create folder structure
         if not os.path.exists(output_path):
@@ -81,7 +115,9 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
         meta_dict = {
             'template': template_name,
-            'colors': representative_colors,
+            'hues': sorted_hues,
+            'sats': sats,
+            'vals': vals,
             'lightness': lightness,
             'variance': variance}
 
@@ -116,21 +152,18 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
 
-                layer_count = len(json_data['colors'])
+                layer_count = len(json_data['hues'])
                 template_pieces = image_decompose(template, layer_count)
 
                 colorized_layers = []
                 for index, layer in enumerate(template_pieces):
-                    # layer.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
 
-                    h, s, v = (json_data['colors'][index][:3])
-                    h /= 255.
-                    s /= 255.
-                    v /= 255.
+                    hue = json_data['hues'][index]
+                    sat = json_data['sats'][index]
 
-                    print(json_data['colors'][index][:3])
-                    print(h, s, v)
-                    layer = colorize(layer, h, s, v, 1., .5, 0.0)
+                    # print(json_data['colors'][index][:3])
+                    # print(h, s, v)
+                    layer = colorize(layer, hue, sat, 0, 1., .5, 0.0)
 
                     # contrast_mult = lightness_variance(template) - json_data['variance']
                     # layer = contrast(layer, 0., 0., contrast_mult)
@@ -147,4 +180,3 @@ def populate_images(templates_path, metadata_pack, output_path):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.get_image().save(full_path_output)
-                

@@ -1,6 +1,7 @@
 from settings import *
 from file_utilities import *
 from image_utilities import *
+import json
 
 from shutil import rmtree
 
@@ -36,8 +37,15 @@ def image_synthesis():
     """Extract representative colors for every image that matches template"""
 
     # keys = template_detect(diff_pack, template_path, threshold=.85)
+
+    # print(json.dumps(keys))
+
+    keyfile = open('keyfile.txt', 'r')
+    # keyfile.write(json.dumps(keys) + "\n")
+
+    keys = json.loads(keyfile.readline())
     # print(keys)
-    # build_metadata_tree(diff_pack, metadata_pack, keys, 5)
+    build_metadata_tree(diff_pack, metadata_pack, keys, 5)
 
     # Converts json files to images with templates
     populate_images(template_path, metadata_pack, output_path)
