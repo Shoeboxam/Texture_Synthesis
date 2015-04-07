@@ -42,6 +42,5 @@ def color_extract(raster, color_count):
 
     # Calculate X number of representative colors
     KMeans_object = KMeans(n_clusters=color_count, random_state=0)
-    print(raster.get_opaque())
     representative_colors = KMeans_object.fit(raster.get_opaque()).cluster_centers_
-    return representative_colors.astype(int)
+    return representative_colors

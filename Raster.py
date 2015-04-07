@@ -42,8 +42,6 @@ class Raster:
 
 
         bits = bit_depth[image.mode]
-        print(image.info)
-        print(np.asarray(image))
         pixels = np.asarray(image).reshape(width * height, channels).astype(float) / (2**bits - 1)
 
         return self(pixels, width, height, mode, channels, bits, alpha)

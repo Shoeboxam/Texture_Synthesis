@@ -163,7 +163,7 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                     # print(json_data['colors'][index][:3])
                     # print(h, s, v)
-                    layer = colorize(layer, hue, sat, 0, 1., .5, 0.0)
+                    layer = colorize(layer, hue, sat, 0, 1., 1., 0.0)
 
                     # contrast_mult = lightness_variance(template) - json_data['variance']
                     # layer = contrast(layer, 0., 0., contrast_mult)
