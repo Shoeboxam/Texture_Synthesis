@@ -85,7 +85,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
             vals.append(v)
 
         hues = sorted(hues)
-        sats = sorted(sats)
+        sats = sorted(sats)[::-1]
         vals = sorted(vals)
 
         hue_mean = circular_mean(hues)
