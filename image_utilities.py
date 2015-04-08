@@ -153,7 +153,17 @@ def populate_images(templates_path, metadata_pack, output_path):
                 template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
 
                 contrast_mult = (lightness_variance(template) - json_data['variance']) * .4
-                template = contrast(template, 0., 0., contrast_mult)
+                template = contrast(template, contrast_mult)
+
+                lightness_adjustment = json_data['lightness'] - val_mean(template)
+                template.colors[:, 2] += lightness_adjustment
+                minimum, maximum = lightness_extrema(template)
+                if minimum < 0:
+                    template.colors[:, 2] -= minimum
+                if maximum > 1:
+                    template.colors[:, 2] -= (maximum - 1)
+
+                template.colors = np.clip(template.colors, 0., 1.)
 
                 layer_count = len(json_data['hues'])
                 template_pieces = image_decompose(template, layer_count)
