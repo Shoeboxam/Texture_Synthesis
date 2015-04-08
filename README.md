@@ -9,23 +9,25 @@ Procedural sprite generation for Soartex mod support through Python.
 2. Rename mod directory with name of assets folder
 3. Pair asset folder with mod name
 4. Rename mod folders to repository names
-5. Duplicate all files in default pack that are not in resource pack
-6. Detect textures that are derivatives of template files (Pearson correlation)
-7. Analyze detected textures (KMeans clustering)
-8. Save shape, representative colors and light point to json files
-9. Decompose resource templates into layers (lightness based alpha masking)
-10. Sort json colors, then filter decomposed image to match
-11. Recomposite layers with simplified additive alpha blending
-12. Adjust contrast and lightness to match mod sprite
-13. Save image result to output directory tree
+5. Extract all files in default pack that are not in resource pack
+6. Detect repetitive image patterns and identify as templates
+7. Detect textures that are derivatives of template files (Pearson correlation)
+8. Analyze detected textures (KMeans with color coordinates)
+9. Save shape, representative colors, lightness, contrast to json files
+10. Adjust contrast and lightness to match mod sprite
+11. Decompose resource templates into layers (alpha masking or spatial clustering)
+12. Sort json colors, then filter image components to match
+13. Recomposite layers with simplified additive alpha blending
+14. Mask saturation in lighter values
+15. Save image result to output directory tree
 
 
 TODO
 ---------------
 
-- Clean up raster class/contrast  
-- Circular color sort  
-- Fix image decomposite  
+- Spatial clustering in decomposure and analysis  
+- Automatically create templates  
+- Reduce sat in lighter values  
 - General code cleanup/documentation  
 
 
