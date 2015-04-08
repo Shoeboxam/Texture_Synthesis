@@ -49,6 +49,18 @@ def contrast(raster, value_multiplier):
     return raster
 
 
+def brightness(raster, light_difference):
+    raster.colors[:, 2] += light_difference
+    minimum, maximum = lightness_extrema(raster)
+    if minimum < 0:
+        raster.colors[:, 2] -= minimum
+    if maximum > 1:
+        raster.colors[:, 2] -= (maximum - 1)
+
+    raster.colors = np.clip(raster.colors, 0., 1.)
+    return raster
+
+
 def image_decompose(raster, layers):
     """Slice image by a given number of lightness zones"""
 

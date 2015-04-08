@@ -85,24 +85,9 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
             sats.append(s)
             vals.append(v)
 
-        hues = sorted(hues)
+        hues = circular_sort(hues)
         sats = sorted(sats)[::-1]
         vals = sorted(vals)
-
-        hue_mean = circular_mean(hues)
-        hue_mean += .5
-        hue_mean %= 1.
-
-        first_index = 0
-        # Find first index in listing
-        for index, value in enumerate(hues):
-            if value >= hue_mean:
-                first_index = index
-                break
-
-        sorted_hues = []
-        for index in range(len(hues)):
-            sorted_hues.append(hues[(first_index + index) % len(hues)])
 
         # print(sorted_hues, sats, vals)
 
@@ -115,7 +100,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
         meta_dict = {
             'template': template_name,
-            'hues': sorted_hues,
+            'hues': hues,
             'sats': sats,
             'vals': vals,
             'lightness': lightness,
@@ -148,45 +133,44 @@ def populate_images(templates_path, metadata_pack, output_path):
             full_path = os.path.join(root, file)
 
             with open(full_path, 'r') as json_file:
-                json_data = json.load(json_file)
 
-                template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
+                # Open data sources
+                try:
+                    json_data = json.load(json_file)
+                    template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
+                except IOError:
+                    continue
 
-                contrast_mult = (lightness_variance(template) - json_data['variance']) * .4
-                template = contrast(template, contrast_mult)
+                # Transform image
+                output_image = apply_template(template, json_data)
 
-                lightness_adjustment = json_data['lightness'] - val_mean(template)
-                template.colors[:, 2] += lightness_adjustment
-                minimum, maximum = lightness_extrema(template)
-                if minimum < 0:
-                    template.colors[:, 2] -= minimum
-                if maximum > 1:
-                    template.colors[:, 2] -= (maximum - 1)
-
-                template.colors = np.clip(template.colors, 0., 1.)
-
-                layer_count = len(json_data['hues'])
-                template_pieces = image_decompose(template, layer_count)
-
-                colorized_layers = []
-                for index, layer in enumerate(template_pieces):
-
-                    hue = json_data['hues'][index]
-                    sat = json_data['sats'][index]
-
-                    # print(json_data['colors'][index][:3])
-                    # print(h, s, v)
-                    layer = colorize(layer, hue, sat, 0, 1., 1., 0.0)
-
-                    colorized_layers.append(layer)
-
-                output_image = image_composite(colorized_layers)
-                # output_image.get_image().save(r"C:\Users\mike_000\Desktop\singular.png")
-                # output_image = light_adjust(output_image, np.average(json_data['colors']))
-
+                # Output/save image
                 full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
 
                 if not os.path.exists(os.path.split(full_path_output)[0]):
                     os.makedirs(os.path.split(full_path_output)[0])
 
                 output_image.get_image().save(full_path_output)
+
+
+def apply_template(raster, json):
+    # Adjust contrast
+    contrast_mult = (lightness_variance(raster) - json['variance']) * .3
+    raster = contrast(raster, contrast_mult)
+
+    # Adjust lightness
+    lightness_adjustment = json['lightness'] - val_mean(raster)
+    raster = brightness(raster, lightness_adjustment)
+
+    # Adjust coloration
+    minimum, maximum = lightness_extrema(raster)
+    layer_count = len(json['sats'])
+
+    components = image_decompose(raster, layer_count)
+
+    colorized_components = []
+    for index, layer in enumerate(components):
+        layer = colorize(layer, json['hues'][index], json['sats'][index], 0, 1., 1., 0.0)
+        colorized_components.append(layer)
+
+    return image_composite(colorized_components)

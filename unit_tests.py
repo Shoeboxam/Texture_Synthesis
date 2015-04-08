@@ -60,6 +60,7 @@ def image_process():
     # Tester
     print(circular_mean((.23, .51, .98)))
 
+
 def recompose():
     arr = np.zeros((100, 4))
     arr[:, 0] = .5

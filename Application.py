@@ -38,7 +38,7 @@ def image_synthesis():
 
     # keys = template_detect(diff_pack, template_path, threshold=.85)
 
-    # print(json.dumps(keys))
+    # # print(json.dumps(keys))
 
     keyfile = open('keyfile.txt', 'r')
     # keyfile.write(json.dumps(keys) + "\n")

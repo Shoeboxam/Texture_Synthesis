@@ -85,3 +85,24 @@ def circular_mean(values, weights=None):
     # Due to sinusoidal nature and period of one, ...
     # mod does not change val, it merely sets a range
     return offset % 1
+
+
+def circular_sort(hues):
+    hues = sorted(hues)
+
+    hue_mean = circular_mean(hues)
+    hue_mean += .5
+    hue_mean %= 1.
+
+    first_index = 0
+    # Find first index in listing
+    for index, value in enumerate(hues):
+        if value >= hue_mean:
+            first_index = index
+            break
+
+    sorted_hues = []
+    for index in range(len(hues)):
+        sorted_hues.append(hues[(first_index + index) % len(hues)])
+
+    return sorted_hues
