@@ -28,10 +28,10 @@ class Raster:
         bit_depth = {'1': 1, 'L': 8, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
         channel_depth = {'1': 1, 'L': 1, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
 
-        width, height = image.size
-
+        # TODO: Clean up this horrific mess
         channels = channel_depth[image.mode]
         image = image.convert('RGBA')
+        width, height = image.size
         mode = image.mode
 
         alpha = False
@@ -39,7 +39,6 @@ class Raster:
             alpha = True
             mode = mode.replace('A', '')
         channels = 4
-
 
         bits = bit_depth[image.mode]
         pixels = np.asarray(image).reshape(width * height, channels).astype(float) / (2**bits - 1)

@@ -36,7 +36,6 @@ def lightness_variance(raster):
     return lightnesses.std() / linear_mean(lightnesses, raster.mask)
 
 
-
 def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 

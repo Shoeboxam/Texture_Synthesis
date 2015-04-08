@@ -66,6 +66,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
     """Save representative data to json files in meta pack"""
 
     for key, template_name in image_keys.items():
+        # print(key, template_name)
 
         output_path = os.path.split(output_directory + key)[0]
         img = Raster.from_path(analysis_directory + key)
@@ -103,8 +104,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
         for index in range(len(hues)):
             sorted_hues.append(hues[(first_index + index) % len(hues)])
 
-        print(key, template_name)
-        print(sorted_hues, sats, vals)
+        # print(sorted_hues, sats, vals)
 
         variance = lightness_variance(img)
         lightness = val_mean(img)
@@ -152,6 +152,9 @@ def populate_images(templates_path, metadata_pack, output_path):
 
                 template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
 
+                contrast_mult = (lightness_variance(template) - json_data['variance']) * .4
+                template = contrast(template, 0., 0., contrast_mult)
+
                 layer_count = len(json_data['hues'])
                 template_pieces = image_decompose(template, layer_count)
 
@@ -164,9 +167,6 @@ def populate_images(templates_path, metadata_pack, output_path):
                     # print(json_data['colors'][index][:3])
                     # print(h, s, v)
                     layer = colorize(layer, hue, sat, 0, 1., 1., 0.0)
-
-                    # contrast_mult = lightness_variance(template) - json_data['variance']
-                    # layer = contrast(layer, 0., 0., contrast_mult)
 
                     colorized_layers.append(layer)
 

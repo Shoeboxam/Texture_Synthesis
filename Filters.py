@@ -7,6 +7,7 @@ import copy
 
 from Raster import *
 
+
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
 
     raster.to_hsv()
@@ -29,11 +30,11 @@ def contrast(raster, hue_mult, sat_mult, val_mult):
 
     raster.to_hsv()
 
-    avg_hue = hue_mean(raster)
+    # avg_hue = hue_mean(raster)
     avg_sat = sat_mean(raster)
     avg_val = val_mean(raster)
 
-    period_hue = 1
+    # period_hue = 1
     period_sat = pi / min([avg_sat, 1 - avg_sat])
     period_val = pi / min([avg_val, 1 - avg_val])
 
@@ -44,8 +45,8 @@ def contrast(raster, hue_mult, sat_mult, val_mult):
     for index, (h, s, v) in enumerate(raster.colors):
 
         # Blend in values at given opacity
-        h = h
-        s -= sin(period_sat * (s - min_sat)) * sat_mult
+        # h = h
+        # s -= sin(period_sat * (s - min_sat)) * sat_mult
         v -= sin(period_val * (v - min_val)) * val_mult
 
         s = clamp(s, 0, 1)
