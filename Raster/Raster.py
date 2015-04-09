@@ -63,6 +63,8 @@ class Raster:
 
         if mode is not None:
             image = image.convert(mode)
+        else:
+            mode = image.mode
 
         # Convert to flat numpy array
         channels = channel_depth[mode]
@@ -80,7 +82,7 @@ class Raster:
         return cls(colors, image.size, image.mode.replace('A', ''), mask)
 
     @classmethod
-    def from_path(cls, path, mode):
+    def from_path(cls, path, mode=None):
         return cls.from_image(Image.open(path), mode)
 
     # Combines alpha channel with color
@@ -91,7 +93,7 @@ class Raster:
     def get_image(self):
         self.to_rgb()
         pixels = np.reshape(self.with_alpha(), (self.shape[0], self.shape[1], 4))
-        return Image.fromarray(np.ceil((pixels * 255).astype(np.uint8)), mode=self.mode)
+        return Image.fromarray(np.ceil(pixels * 255).astype(np.uint8), mode='RGBA')
 
     def get_opaque(self):
         solid = []

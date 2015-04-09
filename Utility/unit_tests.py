@@ -12,6 +12,7 @@ from scipy.stats.stats import pearsonr
 
 np.set_printoptions(precision=3)
 np.set_printoptions(suppress=True)
+np.set_printoptions(threshold=np.nan)
 
 
 def image_detect():
@@ -101,4 +102,9 @@ def recompose():
     recombined = image_composite(img_list)
 
     recombined.get_image().save(r"C:\Users\mike_000\Desktop\recombined.png")
-recompose() 
+# recompose()
+
+def open_show():
+    image = Raster.from_path(r"C:\Users\mike_000\Desktop\singular.png")
+    image.get_image().show()
+open_show()
