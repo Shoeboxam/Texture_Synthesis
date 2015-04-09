@@ -1,11 +1,8 @@
-from image_analysis import *
-from math_utilities import *
-from math import cos
-from math import sin
-from math import pi
 import copy
 
-from Raster import *
+from Raster.analyze import *
+from Raster.raster import *
+from Utility.modular_math import *
 
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
@@ -107,8 +104,8 @@ def image_composite(raster_list):
     height = raster_list[0].height
 
     pixel_layers = []
-    for raster in raster_list:
-        pixel_layers.append(raster.with_alpha())
+    for image in raster_list:
+        pixel_layers.append(image.with_alpha())
 
     pixel_accumulator = []
 

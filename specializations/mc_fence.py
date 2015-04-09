@@ -1,6 +1,6 @@
 from PIL import Image
 import random
-import math
+import modular_math
 
 # Configurable image metadata
 home = "C:\\Users\\mike_000\\Desktop\\"
@@ -58,7 +58,7 @@ def resize(img, size, edge=edge_depth):
     bottom_edge = bottom_edge.resize([size[0] - (edge * 2), bottom_edge.size[1]])
 
     # Repeat vertical grain
-    temp_height = math.ceil(size[1] - (edge * 2) / img.size[1] - (edge * 2))
+    temp_height = modular_math.ceil(size[1] - (edge * 2) / img.size[1] - (edge * 2))
 
     left_edge_large = Image.new('RGBA', (edge, temp_height))
     center_large = Image.new('RGBA', (center.size[0], temp_height))

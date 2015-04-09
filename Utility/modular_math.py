@@ -66,10 +66,10 @@ def circular_mean(values, weights=None):
     normalizer = sum(weights)
 
     for val, weight in zip(values, weights):
-        x.append(np.cos(val * period) * weight / normalizer)
-        y.append(np.sin(val * period) * weight / normalizer)
+        x.append(cos(val * period) * weight / normalizer)
+        y.append(sin(val * period) * weight / normalizer)
     try:
-        offset = (np.arctan(sum(y) / sum(x))) / period
+        offset = (atan(sum(y) / sum(x))) / period
     # Catch Undefined tan(90) and tan(270)
     except ZeroDivisionError:
         try:

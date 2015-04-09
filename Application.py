@@ -37,7 +37,7 @@ def image_synthesis():
     """Extract representative colors for every image that matches template"""
 
     # keys = template_detect(diff_pack, template_path, threshold=.85)
-
+ 
     # # print(json.dumps(keys))
 
     keyfile = open('keyfile.txt', 'r')

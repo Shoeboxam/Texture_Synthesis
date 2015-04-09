@@ -1,13 +1,13 @@
-from PIL import Image
-from scipy.stats.stats import pearsonr
-import numpy as np
-
 import os
 import json
 import colorsys
 
-from Raster import *
-from Filters import *
+from PIL import Image
+
+from scipy.stats.stats import pearsonr
+
+from Raster.raster import *
+from Raster.filter import *
 
 
 def correlate(template, candidate):

@@ -1,5 +1,6 @@
 from sklearn.cluster import KMeans
-from math_utilities import *
+
+from Utility.modular_math import *
 
 
 def lightness_extrema(raster):
