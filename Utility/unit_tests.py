@@ -2,9 +2,9 @@ import os
 
 from PIL import Image
 
-from Raster.raster import *
-from Raster.filter import *
-from Utility.modular_math import *
+from raster.raster import *
+from raster.filter import *
+from utility.modular_math import *
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats.stats import pearsonr

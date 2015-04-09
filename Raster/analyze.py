@@ -1,46 +1,30 @@
 from sklearn.cluster import KMeans
-
-from Utility.modular_math import *
-
-
-def lightness_extrema(raster):
-    raster.to_hsv()
-
-    lightnesses = raster.get_opaque()[:, 2]
-    # print(lightnesses)
-    return [min(lightnesses), max(lightnesses)]
+from utility.modular_math import *
 
 
-def hue_mean(raster):
-    raster.to_hsv()
+def extrema(raster, channel):
 
-    hues = raster.get_opaque()
-
-    return circular_mean(hues, raster.mask)
+    data = raster.channel(channel, opaque=True)
+    return [min(data), max(data)]
 
 
-def sat_mean(raster):
-    raster.to_hsv()
-    return linear_mean(raster.channel('S'), raster.mask)
-
-
-def val_mean(raster):
-    raster.to_hsv()
-    return linear_mean(raster.channel('V'), raster.mask)
+def mean(raster, channel):
+    if channel == 'H':
+        return circular_mean(raster.channel(channel), raster.mask)
+    else:
+        return linear_mean(raster.channel(channel), raster.mask)
 
 
 # RMS contrast measure
-def lightness_variance(raster):
-    raster.to_hsv()
-    lightnesses = raster.channel('V')
-
-    return lightnesses.std() / linear_mean(lightnesses, raster.mask)
+def variance(raster, channel):
+    data = raster.channel(channel)
+    return data.std() / linear_mean(data, raster.mask)
 
 
 def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 
     # Calculate X number of representative colors
-    KMeans_object = KMeans(n_clusters=color_count, random_state=0)
-    representative_colors = KMeans_object.fit(raster.get_opaque()).cluster_centers_
+    kmeans_object = KMeans(n_clusters=color_count, random_state=0)
+    representative_colors = kmeans_object.fit(raster.get_opaque()).cluster_centers_
     return representative_colors

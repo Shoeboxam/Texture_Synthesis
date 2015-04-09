@@ -1,19 +1,14 @@
 import os
 import json
-import colorsys
-
-from PIL import Image
-
 from scipy.stats.stats import pearsonr
 
-from Raster.raster import *
-from Raster.filter import *
+from raster.filter import *
 
 
 def correlate(template, candidate):
     """Returns correlation coefficient between two pixel lists"""
 
-    if (template.size != candidate.size):
+    if template.size != candidate.size:
         return 0
 
     width, height = template.size
@@ -69,7 +64,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
         # print(key, template_name)
 
         output_path = os.path.split(output_directory + key)[0]
-        img = Raster.from_path(analysis_directory + key)
+        img = Raster.from_path(analysis_directory + key, 'RGBA')
 
         # Calculate colors from image in analysis_directory
         colors = color_extract(img, sections)[:, :3]
@@ -91,8 +86,8 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
         # print(sorted_hues, sats, vals)
 
-        variance = lightness_variance(img)
-        lightness = val_mean(img)
+        data_variance = variance(img, 'V')
+        lightness = mean(img, 'V')
 
         # Create folder structure
         if not os.path.exists(output_path):
@@ -104,7 +99,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
             'sats': sats,
             'vals': vals,
             'lightness': lightness,
-            'variance': variance}
+            'variance': data_variance}
 
         # Save json file
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
@@ -118,7 +113,7 @@ def list_templates(template_path):
     values = os.listdir(template_path + '\\values\\')
 
     for filename_default, filename_replacer in zip(keys, values):
-        if (filename_default == filename_replacer):
+        if filename_default == filename_replacer:
             matches.append(filename_default)
         else:
             print("Incomplete template pairing: " + filename_default)
@@ -129,15 +124,15 @@ def list_templates(template_path):
 def populate_images(templates_path, metadata_pack, output_path):
 
     for root, folders, files in os.walk(metadata_pack):
-        for file in files:
-            full_path = os.path.join(root, file)
+        for image_file in files:
+            full_path = os.path.join(root, image_file)
 
             with open(full_path, 'r') as json_file:
 
                 # Open data sources
                 try:
                     json_data = json.load(json_file)
-                    template = Raster.from_path(templates_path + '\\values\\' + json_data['template'])
+                    template = Raster.from_path(templates_path + '\\values\\' + json_data['template'], 'RGBA')
                 except IOError:
                     continue
 
@@ -153,24 +148,22 @@ def populate_images(templates_path, metadata_pack, output_path):
                 output_image.get_image().save(full_path_output)
 
 
-def apply_template(raster, json):
+def apply_template(raster, json_data):
     # Adjust contrast
-    contrast_mult = (lightness_variance(raster) - json['variance']) * .3
+    contrast_mult = (variance(raster, 'V') - json_data['variance']) * .3
     raster = contrast(raster, contrast_mult)
 
     # Adjust lightness
-    lightness_adjustment = json['lightness'] - val_mean(raster)
+    lightness_adjustment = json_data['lightness'] - mean(raster, 'V')
     raster = brightness(raster, lightness_adjustment)
 
     # Adjust coloration
-    minimum, maximum = lightness_extrema(raster)
-    layer_count = len(json['sats'])
-
+    layer_count = len(json_data['hues'])
     components = image_decompose(raster, layer_count)
 
     colorized_components = []
     for index, layer in enumerate(components):
-        layer = colorize(layer, json['hues'][index], json['sats'][index], 0, 1., 1., 0.0)
+        layer = colorize(layer, json_data['hues'][index], json_data['sats'][index], 0, 1., 1., 0.0)
         colorized_components.append(layer)
 
     return image_composite(colorized_components)

@@ -15,6 +15,7 @@ def clamp(value, lower=0., upper=1.):
 
 def smooth_hill(minima, maxima, value):
     '''Map value to sinusoidal wave with period start/end at given extrema in range of 0 to 1'''
+
     period = (2 * pi) / (maxima - minima)
     return 1 - (cos(period * (value - minima)) * .5 + .5)
 
