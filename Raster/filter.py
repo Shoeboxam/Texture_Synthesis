@@ -1,7 +1,7 @@
 import copy
 
 from analyze import *
-from raster import *
+from raster import Raster
 from utility.modular_math import *
 
 
@@ -57,7 +57,7 @@ def brightness(raster, light_difference):
     return raster
 
 
-def image_decompose(raster, layers):
+def decomposite(raster, layers):
     """Slice image by a given number of lightness zones"""
 
     minimum, maximum = extrema(raster, 'V')
@@ -96,7 +96,7 @@ def image_decompose(raster, layers):
     return raster_components
 
 
-def image_composite(raster_list):
+def composite(raster_list):
     """Combine all input layers with additive alpha blending"""
 
     pixel_layers = []

@@ -1,31 +1,10 @@
 import os
 import json
-from scipy.stats.stats import pearsonr
+import colorsys
 
 from raster.filter import *
-
-
-def correlate(template, candidate):
-    """Returns correlation coefficient between two pixel lists"""
-
-    if template.size != candidate.size:
-        return 0
-
-    width, height = template.size
-    template_pixels = np.asarray(template).reshape((width * height, 4))
-    candidate_pixels = np.asarray(candidate.convert('RGBA')).reshape((width * height, 4))
-
-    template_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in template_pixels]
-    candidate_pixels_value = [colorsys.rgb_to_hsv(*pixel[:3])[2] for pixel in candidate_pixels]
-
-    coefficient_value = pearsonr(template_pixels_value, candidate_pixels_value)[0]
-
-    # Calculate alpha relation independently to avoid contamination with colors
-    coefficient_alpha = pearsonr(template_pixels[:, 3], candidate_pixels[:, 3])[0]
-    if coefficient_alpha < .99:
-        return 0
-
-    return coefficient_value
+from raster.analyze import *
+from utility.modular_math import circular_sort
 
 
 def template_detect(target, template_path, threshold):
@@ -36,20 +15,22 @@ def template_detect(target, template_path, threshold):
     template_filenames = os.listdir(template_path + "\\keys\\")
     template_images = []
     for filename in template_filenames:
-        template_images.append(Image.open(template_path + "\\keys\\" + filename))
+        template_images.append(Raster.from_path(template_path + "\\keys\\" + filename))
 
     # Check every file against every template
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
 
+            candidate = Raster.from_path(full_path)
+            print(type(candidate))
             # template with highest correlation is selected
             highest_correlation = [0, "null"]
-            for template_pixels, template_filename in zip(template_images, template_filenames):
-                relation_coefficient = correlate(template_pixels, Image.open(full_path))
+            for template, template_filename in zip(template_images, template_filenames):
+                correlation = correlate(template, candidate)
 
-                if relation_coefficient > highest_correlation[0]:
-                    highest_correlation = [relation_coefficient, template_filename]
+                if correlation > highest_correlation[0]:
+                    highest_correlation = [correlation, template_filename]
 
             if highest_correlation[0] > threshold:
                 image_keys[full_path.replace(target, "")] = highest_correlation[1]
@@ -148,22 +129,22 @@ def populate_images(templates_path, metadata_pack, output_path):
                 output_image.get_image().save(full_path_output)
 
 
-def apply_template(raster, json_data):
+def apply_template(image, json_data):
     # Adjust contrast
-    contrast_mult = (variance(raster, 'V') - json_data['variance']) * .3
-    raster = contrast(raster, contrast_mult)
+    contrast_mult = (variance(image, 'V') - json_data['variance']) * .3
+    image = contrast(image, contrast_mult)
 
     # Adjust lightness
-    lightness_adjustment = json_data['lightness'] - mean(raster, 'V')
-    raster = brightness(raster, lightness_adjustment)
+    lightness_adjustment = json_data['lightness'] - mean(image, 'V')
+    image = brightness(image, lightness_adjustment)
 
     # Adjust coloration
     layer_count = len(json_data['hues'])
-    components = image_decompose(raster, layer_count)
+    components = decomposite(image, layer_count)
 
     colorized_components = []
     for index, layer in enumerate(components):
         layer = colorize(layer, json_data['hues'][index], json_data['sats'][index], 0, 1., 1., 0.0)
         colorized_components.append(layer)
 
-    return image_composite(colorized_components)
+    return composite(colorized_components)

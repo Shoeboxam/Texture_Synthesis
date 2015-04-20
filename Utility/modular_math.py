@@ -1,12 +1,5 @@
-from math import cos
-from math import sin
-from math import atan
-from math import pi
+from math import cos, sin, atan, pi
 import numpy as np
-
-# def hsv_to_rgb(h, s, v):
-
-# def rgb_to_hsv(r, g, b):
 
 
 def clamp(value, lower=0., upper=1.):

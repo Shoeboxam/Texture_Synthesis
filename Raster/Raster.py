@@ -1,9 +1,13 @@
-import numpy as np
 from PIL import Image
+import numpy as np
 import colorsys
 
+np.set_printoptions(precision=3)
+np.set_printoptions(suppress=True)
+np.set_printoptions(threshold=np.nan)
 
-class Raster:
+
+class Raster(object):
 
     def __init__(self, colors, shape, mode, mask=None):
 
@@ -23,8 +27,7 @@ class Raster:
         if len(colors) != np.product(self.shape):
             raise ValueError("Length of colors does not match shape")
 
-        if np.max(colors) > 1 or np.min(colors) < 0:
-            raise ValueError("Color elements must be between zero and one")
+        print(len(colors))
         self.colors = colors
 
     @property
@@ -87,6 +90,7 @@ class Raster:
 
     # Combines alpha channel with color
     def with_alpha(self):
+        """Returns data with alpha"""
         mask = np.reshape(self.mask, (len(self.mask), 1))
         return np.append(self.colors, mask, axis=1)
 
@@ -134,5 +138,5 @@ class Raster:
 
     # Optional fragment-based manipulation
     def filter(self, func, *args):
-        for index, (a, b, c) in enumerate(self.colors):
-            self.colors[index] = func((a, b, c), *args)
+        for index, pixel in enumerate(self.colors):
+            self.colors[index] = func(pixel, *args)

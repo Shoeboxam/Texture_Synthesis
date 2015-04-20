@@ -1,37 +1,11 @@
-import os
-
-from PIL import Image
-
-from raster.raster import *
-from raster.filter import *
-from utility.modular_math import *
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy.stats.stats import pearsonr
 
+from raster import Raster, filter
+from utility.modular_math import *
 
 np.set_printoptions(precision=3)
 np.set_printoptions(suppress=True)
 np.set_printoptions(threshold=np.nan)
-
-
-def image_detect():
-    home = r"C:\Users\mike_000\AppData\Roaming\.ftb\FTBResurrection\minecraft"
-    threshold = 0.70
-
-    template_img = Image.open(r"C:\Users\mike_000\Desktop\defaults\glass.png")
-    template = template_img.convert("L").getdata()
-
-    for root, dirs, files in os.walk(home + "\\resourcepacks\\default\\"):
-        for current_file in files:
-            img = Image.open(root + "\\" + current_file)
-
-            if (img.size == template_img.size):
-                candidate = img.convert("L").getdata()
-
-                if(pearsonr(template, candidate)[0] > threshold):
-                    print(current_file)
-                    img.show()
 
 
 def smooth_point():
@@ -50,59 +24,21 @@ def smooth_point():
     plt.show()
 
 
-def alpha_mask_test():
-    arr = np.zeros((100, 4))
-    arr[:, 0] = .5
-    arr[:, 1] = .0
-    arr[:, 2] = np.linspace(0, 1, 100)
-    arr[:, 3] = 1.
-    arr = np.reshape(arr, (10, 10, 4))
-    img = Raster.from_array(arr, 'HSV')
-    img_list = image_decompose(img, 2)
-
-    for index, section in enumerate(img_list):
-        rgb_img = section
-        rgb_img.to_rgb()
-        PIL = rgb_img.get_image()
-        PIL.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
-
-# alpha_mask_test()
-
-
 def image_process():
     img = Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
-    img = colorize(img, 1, .1, .2, .3, .01, 0)
-    img = contrast(img, 1, .2, 0.12)
+    img = filter.colorize(img, 1, .1, .2, .3, .01, 0)
+    img = filter.contrast(img, 0.12)
 
-    img_set = image_decompose(img, 5)
+    img_set = filter.decomposite(img, 5)
     print(img_set)
     for index, section in enumerate(img_set):
-        PIL = section.get_image()
-        PIL.show()
-        PIL.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
-    PIL = img.get_image()
+        pil = section.get_image()
+        pil.show()
+        pil.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
 
     # Tester
     print(circular_mean((.23, .51, .98)))
 
-
-def recompose():
-    arr = np.zeros((100, 4))
-    arr[:, 0] = .5
-    arr[:, 1] = .0
-    arr[:, 2] = np.linspace(.5, 1, 100)
-    arr[:, 3] = 1.
-    arr = np.reshape(arr, (10, 10, 4))
-    img = Raster.from_array(arr, 'HSV')
-
-    img_list = image_decompose(img, 5)
-
-    for index, img in enumerate(img_list):
-        img.get_image().save(r"C:\Users\mike_000\Desktop\recombined_" + str(index) + ".png")
-    recombined = image_composite(img_list)
-
-    recombined.get_image().save(r"C:\Users\mike_000\Desktop\recombined.png")
-# recompose()
 
 def open_show():
     image = Raster.from_path(r"C:\Users\mike_000\Desktop\singular.png")

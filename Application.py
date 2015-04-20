@@ -36,14 +36,14 @@ def create_diff():
 def image_synthesis():
     """Extract representative colors for every image that matches template"""
 
-    # keys = template_detect(diff_pack, template_path, threshold=.85)
- 
+    keys = template_detect(diff_pack, template_path, threshold=.85)
+
     # # print(json.dumps(keys))
 
     keyfile = open('keyfile.txt', 'r')
-    # keyfile.write(json.dumps(keys) + "\n")
+    keyfile.write(json.dumps(keys) + "\n")
 
-    keys = json.loads(keyfile.readline())
+    # keys = json.loads(keyfile.readline())
     # print(keys)
     build_metadata_tree(diff_pack, metadata_pack, keys, 5)
 
