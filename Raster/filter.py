@@ -1,8 +1,10 @@
 import copy
+from math import pi, sin, cos
+import numpy as np
 
-from analyze import *
+from analyze import mean, extrema
 from raster import Raster
-from utility.modular_math import *
+from utility.modular_math import circular_mean, linear_mean, clamp
 
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):

@@ -27,20 +27,20 @@ def resource_filter(target_path):
 def extract_files(mods_directory, staging_directory, separate=True):
     """Unzip every mod into staging directory"""
 
-    for file in os.listdir(mods_directory):
-        if file.endswith(".jar"):
+    for file_name in os.listdir(mods_directory):
+        if file_name.endswith(".jar"):
             try:
-                zip_ob = zipfile.ZipFile(mods_directory + file)
+                zip_ob = zipfile.ZipFile(mods_directory + file_name)
 
                 mod_path = staging_directory
-                if (separate):
-                    mod_path += ("\\" + file)
+                if separate:
+                    mod_path += ("\\" + file_name)
 
                 # Extract mod into staging directory
                 try:
                     zip_ob.extractall(mod_path)
                 except PermissionError:
-                    print("Skipped " + file + " [PermissionError]")
+                    print("Skipped " + file_name + " [PermissionError]")
                 except FileNotFoundError:
                     pass
 
@@ -48,7 +48,7 @@ def extract_files(mods_directory, staging_directory, separate=True):
                 try:
                     os.rename(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
                 except FileNotFoundError:
-                    print("Skipping rename of " + file + " [FileNotFoundError]")
+                    print("Skipping rename of " + file_name + " [FileNotFoundError]")
                     rmtree(mod_path)
                 except FileExistsError:
                     copy_tree(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
@@ -110,11 +110,11 @@ def copytree_wrapper(default_pack, diff_pack, untextured_paths):
     # keep_list returns a list of files that have been textured (to ignore)
     def keep_list(folder, files):
         ignore_list = []
-        for file in files:
-            full_path = os.path.join(folder, file)
+        for file_name in files:
+            full_path = os.path.join(folder, file_name)
             if not os.path.isdir(full_path):
                 if os.path.normpath(full_path.replace(default_pack, "")) not in untextured_paths:
-                    ignore_list.append(file)
+                    ignore_list.append(file_name)
         return ignore_list
 
     copytree(default_pack, diff_pack, ignore=keep_list)

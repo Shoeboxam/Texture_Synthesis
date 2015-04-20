@@ -3,7 +3,7 @@ import numpy as np
 
 
 def clamp(value, lower=0., upper=1.):
-        return max(min(value, upper), lower)
+    return max(min(value, upper), lower)
 
 
 def smooth_hill(minima, maxima, value):

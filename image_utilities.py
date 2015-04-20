@@ -2,8 +2,9 @@ import os
 import json
 import colorsys
 
-from raster.filter import *
-from raster.analyze import *
+from raster import Raster
+from raster.analyze import correlate, color_extract, variance, mean
+from raster.filter import brightness, contrast, colorize, decomposite, composite
 from utility.modular_math import circular_sort
 
 
