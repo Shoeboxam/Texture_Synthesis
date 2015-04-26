@@ -47,6 +47,9 @@ def linear_mean(values, weights=None):
 def circular_mean(values, weights=None):
     # Range of 0 to 1
 
+    if len(values) == 0:
+        return 0
+
     if weights is None:
         weights = [1] * len(values)
 
@@ -64,20 +67,16 @@ def circular_mean(values, weights=None):
         y.append(sin(val * period) * weight / normalizer)
     try:
         offset = (atan(sum(y) / sum(x))) / period
-    # Catch Undefined tan(90) and tan(270)
+    # Catch illegal division by cos(90) and cos(270)
     except ZeroDivisionError:
-        try:
-            offset = sum(values) / len(values)
-        except:
-            offset = 0.
+        offset = sum(values) / len(values)
 
     # Adjust domain of offset
-    # print("Xes: " + str(x))
     if sum(x) < 0:
         offset += .5
 
     # Due to sinusoidal nature and period of one, ...
-    # mod does not change val, it merely sets a range
+    # modulus merely moves the point into range
     return offset % 1
 
 

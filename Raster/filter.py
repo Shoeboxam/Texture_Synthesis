@@ -55,7 +55,7 @@ def brightness(raster, light_difference):
     if maximum > 1:
         raster.colors[:, 2] -= (maximum - 1)
 
-    raster.colors = np.clip(raster.colors, 0., 1.)
+    raster._colors = np.clip(raster.colors, 0., 1.)
     return raster
 
 

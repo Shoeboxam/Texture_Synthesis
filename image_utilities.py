@@ -2,7 +2,7 @@ import os
 import json
 import colorsys
 
-from raster import Raster
+from raster.raster import Raster
 from raster.analyze import correlate, color_extract, variance, mean
 from raster.filter import brightness, contrast, colorize, decomposite, composite
 from utility.modular_math import circular_sort
@@ -22,9 +22,7 @@ def template_detect(target, template_path, threshold):
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
-
             candidate = Raster.from_path(full_path)
-            print(type(candidate))
             # template with highest correlation is selected
             highest_correlation = [0, "null"]
             for template, template_filename in zip(template_images, template_filenames):

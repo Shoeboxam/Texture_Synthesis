@@ -32,8 +32,7 @@ def color_extract(raster, color_count):
 
 
 def correlate(a, b):
-    print(type(a))
-    if len(a) != len(b):
+    if len(a.colors) != len(b.colors):
         return 0
 
     if pearsonr(a.mask, b.mask)[0] > .99:
