@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from raster import Raster, filter
+from raster import raster, filter, analyze
 from utility.modular_math import *
 
 np.set_printoptions(precision=3)
@@ -25,11 +25,11 @@ def smooth_point():
 
 
 def image_process():
-    img = Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
+    img = raster.Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
     img = filter.colorize(img, 1, .1, .2, .3, .01, 0)
     img = filter.contrast(img, 0.12)
 
-    img_set = filter.decomposite(img, 5)
+    img_set = filter.value_decomposite(img, 5)
     print(img_set)
     for index, section in enumerate(img_set):
         pil = section.get_image()
@@ -41,6 +41,21 @@ def image_process():
 
 
 def open_show():
-    image = Raster.from_path(r"C:\Users\mike_000\Desktop\singular.png")
+    image = raster.Raster.from_path(r"C:\Users\mike_000\Desktop\singular.png")
     image.get_image().show()
-open_show()
+
+
+def vander_matrix():
+    analyze.best_fit_vandermonde((1,2,3,4), 0)
+
+
+def specular():
+    image = raster.Raster.from_path(r"C:\Users\mike_000\Textures\Invictus_Textures\assets\minecraft\textures\items\diamond_axe.png")
+    pieces = filter.spectral_cluster(image)
+
+    index = 0
+    for cluster in pieces:
+        cluster.get_image().save("C:\Users\mike_000\Desktop\output\\" + str(index )+ ".png")
+        index += 1
+
+specular()

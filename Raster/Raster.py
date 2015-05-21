@@ -1,6 +1,8 @@
 from PIL import Image
 import numpy as np
 import colorsys
+from math import sqrt
+
 
 np.set_printoptions(precision=3)
 np.set_printoptions(suppress=True)
@@ -15,6 +17,10 @@ class Raster(object):
         self._colors = colors
         self._mask = mask
         self._mode = mode
+
+    @property
+    def shape(self):
+        return self._shape
 
     @property
     def colors(self):
@@ -96,7 +102,7 @@ class Raster(object):
 
     def get_image(self):
         self.to_rgb()
-        pixels = np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 4))
+        pixels = self.get_tiered()
         return Image.fromarray(np.ceil(pixels * 255).astype(np.uint8), mode='RGBA')
 
     def get_opaque(self):
@@ -105,6 +111,28 @@ class Raster(object):
             if alpha != 0:
                 solid.append(color)
         return np.array(solid)
+
+    def get_tiered(self):
+        return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 4))
+
+    @classmethod
+    def from_array(cls, array, mode):
+
+        bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
+        channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
+
+        channels = channel_depth[mode]
+
+        width, height = array.shape
+        array = np.reshape(array, (np.product(array.shape), 4))
+
+        # Normalize data
+        bits = bit_depth[mode]
+        array = array.astype(np.float64) / (2**bits - 1)
+
+        colors = array[:, :channels-1]
+        mask = array[:, channels-1]
+        return cls(colors, (width, height), mode.replace('A', ''), mask)
 
     def channel(self, identifier, opaque=False):
         if opaque:

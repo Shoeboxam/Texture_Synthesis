@@ -4,7 +4,7 @@ import colorsys
 
 from raster.raster import Raster
 from raster.analyze import correlate, color_extract, variance, mean
-from raster.filter import brightness, contrast, colorize, decomposite, composite
+from raster.filter import brightness, contrast, colorize, value_decomposite, composite
 from utility.modular_math import circular_sort
 
 
@@ -139,7 +139,7 @@ def apply_template(image, json_data):
 
     # Adjust coloration
     layer_count = len(json_data['hues'])
-    components = decomposite(image, layer_count)
+    components = value_decomposite(image, layer_count)
 
     colorized_components = []
     for index, layer in enumerate(components):

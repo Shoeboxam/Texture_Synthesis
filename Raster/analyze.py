@@ -1,7 +1,7 @@
 from sklearn.cluster import KMeans
 from scipy.stats.stats import pearsonr
-
 from utility import modular_math as math
+import numpy as np
 
 
 def extrema(raster, channel):
@@ -40,5 +40,7 @@ def correlate(a, b):
     return 0
 
 
-def spectral_cluster(raster):
-    pass
+def best_fit_vandermonde(x, y):
+
+    matrix = np.fliplr(np.vander(x))
+    print(matrix)

@@ -6,6 +6,9 @@ from analyze import mean, extrema
 from raster import Raster
 from utility.modular_math import circular_mean, linear_mean, clamp
 
+from sklearn.cluster import spectral_clustering
+from sklearn.feature_extraction import image
+
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
 
@@ -55,11 +58,11 @@ def brightness(raster, light_difference):
     if maximum > 1:
         raster.colors[:, 2] -= (maximum - 1)
 
-    raster._colors = np.clip(raster.colors, 0., 1.)
+    raster.colors = np.clip(raster.colors, 0., 1.)
     return raster
 
 
-def decomposite(raster, layers):
+def value_decomposite(raster, layers):
     """Slice image by a given number of lightness zones"""
 
     minimum, maximum = extrema(raster, 'V')
@@ -98,12 +101,37 @@ def decomposite(raster, layers):
     return raster_components
 
 
+def spectral_decomposite(raster):
+    patches = image.extract_patches_2d(raster.get_tiered(), raster.shape)
+    print(patches.shape)
+    graph = image.img_to_graph(raster.get_tiered())
+
+    beta = 5
+    graph.data = np.exp(-beta * graph.data / raster.get_opaque().std())
+
+    labels = spectral_clustering(graph, n_clusters=5,
+                                 assign_labels='discretize',
+                                 random_state=1)
+
+    clustering_guide = labels.reshape(raster.with_alpha().shape)[:, 0]
+
+    clustered_images = []
+    for cluster in range(max(clustering_guide) + 1):
+        filtered_mask = np.equal(cluster, clustering_guide) * raster.mask
+        if sum(filtered_mask) > 0:
+            new_image = copy.deepcopy(raster)
+            new_image.mask = filtered_mask
+            clustered_images.append(new_image)
+
+    return clustered_images
+
+
 def composite(raster_list):
     """Combine all input layers with additive alpha blending"""
 
     pixel_layers = []
-    for image in raster_list:
-        pixel_layers.append(image.with_alpha())
+    for img in raster_list:
+        pixel_layers.append(img.with_alpha())
 
     pixel_accumulator = []
     mask = []
