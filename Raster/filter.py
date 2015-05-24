@@ -1,10 +1,14 @@
 import copy
-from math import pi, sin, cos
+from math import pi, sin, cos, sqrt
 import numpy as np
 
 from analyze import mean, extrema
 from raster import Raster
 from utility.modular_math import circular_mean, linear_mean, clamp
+
+from itertools import combinations
+import networkx
+from networkx.algorithms.components.connected import connected_components
 
 from sklearn.cluster import spectral_clustering
 from sklearn.feature_extraction import image
@@ -101,7 +105,7 @@ def value_decomposite(raster, layers):
     return raster_components
 
 
-def spectral_decomposite(raster):
+def spectral_decomposite(raster, clusters=5, merge=False):
     patches = image.extract_patches_2d(raster.get_tiered(), raster.shape)
     print(patches.shape)
     graph = image.img_to_graph(raster.get_tiered())
@@ -109,7 +113,7 @@ def spectral_decomposite(raster):
     beta = 5
     graph.data = np.exp(-beta * graph.data / raster.get_opaque().std())
 
-    labels = spectral_clustering(graph, n_clusters=5,
+    labels = spectral_clustering(graph, n_clusters=clusters,
                                  assign_labels='discretize',
                                  random_state=1)
 
@@ -122,6 +126,64 @@ def spectral_decomposite(raster):
             new_image = copy.deepcopy(raster)
             new_image.mask = filtered_mask
             clustered_images.append(new_image)
+
+    if merge:
+
+        # Calculate average channel values for each cluster, producing a list of points
+        coordinates = []
+        for index, piece in enumerate(clustered_images):
+            coordinates.append((np.average(piece.get_opaque(), axis=0), index))
+
+        # Calculates distance between two points
+        def euclidean_distance(point_1, point_2=(0, 0, 0)):
+            difference = point_2 - point_1
+            return sqrt(np.dot(difference, difference))
+
+        # Graph all pixels in 3D, fit a box to the data, then take the distance from the two furthest corners
+        # Used to represent the magnitude, or scale of data. A smaller
+        magnitude = euclidean_distance(np.amin(raster.get_opaque(), axis=0), np.amax(raster.get_opaque(), axis=0))
+        print(magnitude / clusters)
+
+        # Calculate difference between each cluster.
+        # If said distance is beneath a threshold, flag the pair for merging
+        combine_list = []
+        for pair in combinations(coordinates, 2):
+            cluster_differentiation = euclidean_distance(pair[0][0], pair[1][0])
+
+            if cluster_differentiation < magnitude / clusters:
+                combine_list.append((pair[0][1], pair[1][1]))
+
+        # Combine all pairs with shared elements using network graphs
+        def to_graph(node_collection):
+            graph = networkx.Graph()
+            print(node_collection)
+            for nodes in node_collection:
+                print(nodes)
+                graph.add_nodes_from(nodes)
+                graph.add_edges_from(get_edges(nodes))
+            return graph
+
+        def get_edges(nodes):
+            nodes_iterator = iter(nodes)
+            last = next(nodes_iterator)
+
+            for current in nodes_iterator:
+                yield last, current
+                last = current
+
+        # Conserves clusters with no relations
+        for index in range(len(clustered_images)):
+            combine_list.append([index])
+
+        composition_graph = to_graph(combine_list)
+
+        # Actual image compositing to group similar clusters
+        clustered_combined_images = []
+        for indice_set in connected_components(composition_graph):
+            clustered_combined_images.append(composite(np.array(clustered_images)[indice_set]))
+
+        clustered_images = clustered_combined_images
+        # TODO: Filter out single pixel clusters
 
     return clustered_images
 
@@ -161,4 +223,4 @@ def composite(raster_list):
             pixel_accumulator.append([0, 0, 0])
             mask.append(0)
 
-    return Raster(pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask)
+    return Raster.Raster(pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask)

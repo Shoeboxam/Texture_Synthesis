@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 import colorsys
-from math import sqrt
 
 
 np.set_printoptions(precision=3)
