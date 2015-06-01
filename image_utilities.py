@@ -9,7 +9,7 @@ from utility.modular_math import circular_sort
 
 
 def template_detect(target, template_path, threshold):
-    """Finds all occurences of templates in target directory"""
+    """Finds all occurrences of templates in target directory"""
 
     # Load template images into variables
     image_keys = {}

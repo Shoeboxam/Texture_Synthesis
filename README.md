@@ -2,39 +2,29 @@ Texture Synthesis
 =================
 
 
-Procedural sprite generation for Soartex mod support through Python.
+Procedural sprite generation to automate Minecraft resource pack mod support.  
+
+Detects and classifies patterns in the default resource pack. Distinctive patterns are tied to templates. Every default image classified with a template is profiled, and the data is stored in a tree of json files.
+
+The process of profiling decomposes each template into spectral clusters, or zones of discrete information. Predominant colors, data variance and lightness are then calculated from each of the component clusters of every image. This data taken in profiling is used to mould the custom graphic templates into completed graphics.
+
+This project has support for converting between Github repository format (mod patches) and resource pack format (whole), and can read mods and resourcepacks directly from a Minecraft instance.
 
 
-1. Unzip all mod zips
-2. Rename mod directory with name of assets folder
-3. Pair asset folder with mod name
-4. Rename mod folders to repository names
-5. Extract all files in default pack that are not in resource pack
-6. Detect repetitive image patterns and identify as templates
-7. Detect textures that are derivatives of template files (Pearson correlation)
-8. Analyze detected textures (KMeans with color coordinates)
-9. Save shape, representative colors, lightness, contrast to json files
-10. Adjust contrast and lightness to match mod sprite
-11. Decompose resource templates into layers (alpha masking or spatial clustering)
-12. Sort json colors, then filter image components to match
-13. Recomposite layers with simplified additive alpha blending
-14. Mask saturation in lighter values
-15. Save image result to output directory tree
+Structure
+---------
+Raster: custom image object, filters and analysis tools  
+Utilities: implementation of Minecraft use case  
+Specializations: scripts for generating specific classes of textures
 
 
 TODO
----------------
+---------
+Call specialization scripts from main
+Multithread profiling/skeleton generation
+Add support for gui generation within specialization section
+Fuzzy cluster matching and ignore logic
+Scrape MCF Modlist to automatically compile mod directory
+Clean up paths/add config system
+Real unit testing using pytest and asserts
 
-- Spatial clustering in decomposure and analysis  
-- Automatically create templates  
-- Reduce sat in lighter values  
-- General code cleanup/documentation  
-
-
-Dependencies
----------------
-
-[Pillow](https://pillow.readthedocs.org/): image loading and saving  
-[Numpy](http://www.numpy.org): numerical arrays for image processing  
-[Scikit-Learn](http://scikit-learn.org/stable/): image detection and analysis  
-[Matplotlib](http://matplotlib.org): unit testing  

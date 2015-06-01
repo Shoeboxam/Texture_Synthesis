@@ -5,6 +5,11 @@ import json
 
 from shutil import rmtree
 
+def main():
+    create_default()
+    create_diff()
+    image_synthesis()
+
 
 def create_default():
     """Creates a default texture pack in mod repository format"""
@@ -51,4 +56,5 @@ def image_synthesis():
     populate_images(template_path, metadata_pack, output_path)
 
 
-image_synthesis()
+if __name__ == "__main__":
+    main()
