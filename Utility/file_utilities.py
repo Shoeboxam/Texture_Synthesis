@@ -83,14 +83,14 @@ def get_untextured(resource_pack, default_pack):
     resource_listing = {}
     for root, dirs, files in os.walk(resource_pack):
         for name in files:
-            path = os.path.join(root, name).replace(resource_pack, "")
+            path = str(os.path.join(root, name)).replace(resource_pack, "")
             resource_listing[path] = 1
 
     # Create list of relative texture paths for every file in default pack
     default_listing = {}
     for root, dirs, files in os.walk(default_pack):
         for name in files:
-            path = os.path.join(root, name).replace(default_pack, "")
+            path = str(os.path.join(root, name)).replace(default_pack, "")
             default_listing[path] = 1
 
     # Differentiate listings to find untextured files

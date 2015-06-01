@@ -99,3 +99,11 @@ def circular_sort(hues):
         sorted_hues.append(hues[(first_index + index) % len(hues)])
 
     return sorted_hues
+
+
+def polyfit(x, y):
+    return np.polyfit(x, y, len(x)/2)
+
+
+def polysolve(coeff, x):
+    return np.polyval(coeff, x)

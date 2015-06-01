@@ -1,7 +1,6 @@
 from sklearn.cluster import KMeans
 from scipy.stats.stats import pearsonr
-from utility import modular_math as math
-import numpy as np
+from Utility import math_utilities as math
 
 
 def extrema(raster, channel):
@@ -38,9 +37,3 @@ def correlate(a, b):
     if pearsonr(a.mask, b.mask)[0] > .99:
         return pearsonr(a.channel('V'), b.channel('V'))[0]
     return 0
-
-
-def best_fit_vandermonde(x, y):
-
-    matrix = np.fliplr(np.vander(x))
-    print(matrix)

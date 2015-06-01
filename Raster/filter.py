@@ -2,9 +2,9 @@ import copy
 from math import pi, sin, cos, sqrt
 import numpy as np
 
-from analyze import mean, extrema
-from raster import Raster
-from utility.modular_math import circular_mean, linear_mean, clamp
+from Raster.analyze import mean, extrema
+from Raster import Raster
+from Utility.math_utilities import circular_mean, linear_mean, clamp
 
 from itertools import combinations
 import networkx
@@ -155,13 +155,13 @@ def spectral_decomposite(raster, clusters=5, merge=False):
 
         # Combine all pairs with shared elements using network graphs
         def to_graph(node_collection):
-            graph = networkx.Graph()
+            model = networkx.Graph()
             print(node_collection)
             for nodes in node_collection:
                 print(nodes)
-                graph.add_nodes_from(nodes)
-                graph.add_edges_from(get_edges(nodes))
-            return graph
+                model.add_nodes_from(nodes)
+                model.add_edges_from(get_edges(nodes))
+            return model
 
         def get_edges(nodes):
             nodes_iterator = iter(nodes)
@@ -182,10 +182,14 @@ def spectral_decomposite(raster, clusters=5, merge=False):
         for indice_set in connected_components(composition_graph):
             clustered_combined_images.append(composite(np.array(clustered_images)[indice_set]))
 
+            for target in indice_set[1:]:
+                clustering_guide = np.place(clustering_guide, np.equal(clustering_guide, target), indice_set[0])
+
         clustered_images = clustered_combined_images
+
         # TODO: Filter out single pixel clusters
 
-    return clustered_images
+    return clustered_images, clustering_guide
 
 
 def composite(raster_list):

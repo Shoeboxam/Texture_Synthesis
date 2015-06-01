@@ -2,10 +2,11 @@ import os
 import json
 import colorsys
 
-from raster.raster import Raster
-from raster.analyze import correlate, color_extract, variance, mean
-from raster.filter import brightness, contrast, colorize, value_decomposite, composite
-from utility.modular_math import circular_sort
+from Raster.Raster import Raster
+
+from Raster.analyze import correlate, color_extract, variance, mean
+from Raster.filter import brightness, contrast, colorize, value_decomposite, composite, spectral_decomposite
+from Utility.math_utilities import circular_sort, polyfit, polysolve
 
 
 def template_detect(target, template_path, threshold):
@@ -46,40 +47,47 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
         output_path = os.path.split(output_directory + key)[0]
         img = Raster.from_path(analysis_directory + key, 'RGBA')
 
-        # Calculate colors from image in analysis_directory
-        colors = color_extract(img, sections)[:, :3]
+        image_clusters, guide = spectral_decomposite(img, merge=True)
 
-        hues = []
-        sats = []
-        vals = []
+        segment_metalist = []
 
-        for color in colors:
-            r, g, b = color
-            h, s, v = colorsys.rgb_to_hsv(r, g, b)
-            hues.append(h)
-            sats.append(s)
-            vals.append(v)
+        for segment in image_clusters:
+            colors = color_extract(segment, sections)[:, 3]
 
-        hues = circular_sort(hues)
-        sats = sorted(sats)[::-1]
-        vals = sorted(vals)
+            hues = []
+            sats = []
+            vals = []
 
-        # print(sorted_hues, sats, vals)
+            for color in colors:
+                r, g, b = color
+                h, s, v = colorsys.rgb_to_hsv(r, g, b)
+                hues.append(h)
+                sats.append(s)
+                vals.append(v)
 
-        data_variance = variance(img, 'V')
-        lightness = mean(img, 'V')
+            hues = circular_sort(hues)
+            sats = sorted(sats)[::-1]
+            vals = sorted(vals)
+
+            data_variance = variance(img, 'V')
+            lightness = mean(img, 'V')
+
+            segment_metalist.append({
+                'template': template_name,
+                'hues': hues,
+                'sats': sats,
+                'vals': vals,
+                'lightness': lightness,
+                'variance': data_variance})
+
+        meta_dict = {
+            'segment_dicts': json.dumps(segment_metalist),
+            'cluster_map': guide
+        }
 
         # Create folder structure
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-
-        meta_dict = {
-            'template': template_name,
-            'hues': hues,
-            'sats': sats,
-            'vals': vals,
-            'lightness': lightness,
-            'variance': data_variance}
 
         # Save json file
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
@@ -140,6 +148,9 @@ def apply_template(image, json_data):
     # Adjust coloration
     layer_count = len(json_data['hues'])
     components = value_decomposite(image, layer_count)
+
+    # TODO: Workaround for modular polyfit- most likely offset from circular mean
+    coefficients = polyfit(json_data['hues'], json_data['sats'])
 
     colorized_components = []
     for index, layer in enumerate(components):

@@ -1,9 +1,8 @@
-from settings import *
-from file_utilities import *
-from image_utilities import template_detect, build_metadata_tree, populate_images
 import json
 
-from shutil import rmtree
+from settings import *
+from Utility.file_utilities import *
+from Utility.image_utilities import template_detect, build_metadata_tree, populate_images
 
 
 def create_default():

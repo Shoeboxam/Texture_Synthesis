@@ -7,6 +7,9 @@ np.set_printoptions(precision=3)
 np.set_printoptions(suppress=True)
 np.set_printoptions(threshold=np.nan)
 
+bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
+channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
+
 
 class Raster(object):
 
@@ -57,7 +60,6 @@ class Raster(object):
 
     @mode.setter
     def mode(self, mode):
-        channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
         if mode not in channel_depth.keys():
             raise ValueError("Mode is not recognized")
         if channel_depth[mode] != self._colors.shape[1]:
@@ -65,9 +67,6 @@ class Raster(object):
 
     @classmethod
     def from_image(cls, image, mode=None):
-
-        bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
-        channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
 
         if mode is not None:
             image = image.convert(mode)
@@ -77,7 +76,7 @@ class Raster(object):
         # Convert to flat numpy array
         channels = channel_depth[mode]
         width, height = image.size
-        pixels = np.asarray(image.getdata()).reshape(width * height, channels)
+        pixels = np.asarray(image.getdata()).reshape((width * height, channels))
 
         # Normalize data
         bits = bit_depth[image.mode]
@@ -116,9 +115,6 @@ class Raster(object):
 
     @classmethod
     def from_array(cls, array, mode):
-
-        bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
-        channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
 
         channels = channel_depth[mode]
 

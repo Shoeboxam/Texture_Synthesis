@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-from raster import Raster, filter, analyze
-from utility.modular_math import *
+from Raster import Raster, filter, analyze
+from Utility.math_utilities import *
 
 
 np.set_printoptions(precision=3)
@@ -47,16 +47,27 @@ def open_show():
 
 
 def vander_matrix():
-    analyze.best_fit_vandermonde((1,2,3,4), 0)
+    y = sorted(np.random.rand(7, 1).flatten())
+    x = sorted(np.random.rand(7, 1).flatten())
+    print(y)
+    plt.scatter(x, y)
+
+    test_bank = np.linspace(min(x), max(x), 50)
+
+    poly = polysolve(polyfit(x, y), test_bank)
+    plt.plot(test_bank, poly)
+
+    plt.show()
 
 
 def specular():
-    image = Raster.Raster.from_path(r"F:\Users\mike_000\Textures\Invictus_Textures\assets\minecraft\textures\items\bed.png")
-    pieces = filter.spectral_decomposite(image, merge=True)
+    image = Raster.Raster.from_path(
+        r"F:\Users\mike_000\Textures\Invictus_Textures\assets\minecraft\textures\items\bed.png")
+    pieces, guide = filter.spectral_decomposite(image, merge=True)
 
     index = 0
     for cluster in pieces:
-        cluster.get_image().save("F:\Users\mike_000\Desktop\output\\" + str(index )+ ".png")
+        cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
         index += 1
 
-specular()
+vander_matrix()
