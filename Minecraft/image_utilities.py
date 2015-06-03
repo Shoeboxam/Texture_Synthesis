@@ -3,8 +3,8 @@ import json
 import colorsys
 
 from Raster.Raster import Raster
-from Raster.analyze import correlate, color_extract, variance, mean
-from Raster.filter import brightness, contrast, colorize, value_decomposite, composite, spectral_decomposite
+from Raster.analyze import correlate, color_extract, variance, mean, cluster
+from Raster.filter import brightness, contrast, colorize, value_decomposite, composite, layer_decomposite, merge_similar
 from Raster.math_utilities import circular_sort, polyfit
 
 
@@ -46,7 +46,8 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
         output_path = os.path.split(output_directory + key)[0]
         img = Raster.from_path(analysis_directory + key, 'RGBA')
 
-        image_clusters, guide = spectral_decomposite(img, merge=True)
+        layer_map = cluster(img, 4)
+        image_clusters, guide = merge_similar(*layer_decomposite(img, layer_map))
 
         segment_metalist = []
 

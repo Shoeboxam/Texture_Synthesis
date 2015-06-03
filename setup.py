@@ -9,7 +9,8 @@ requirements = [
     'Pillow==2.7.0',
     'scikit-image==0.11.2',
     'scikit-learn==0.15.2',
-    'scipy==0.15.1'
+    'scipy==0.15.1',
+    'gitPython=1.0.1'
 ]
 
 test_requirements = [
@@ -18,25 +19,25 @@ test_requirements = [
 ]
 
 setup(
-    name = "Texture_Synthesis",
-    version = "0.1",
-    description = 'Procedural image processor',
-    long_description = open('README.md').read() + "\n",
-    packages = find_packages(),
-    install_requires = requirements,
-    test_requirements = test_requirements,
+    name="Texture_Synthesis",
+    version="0.1",
+    description='Procedural image processor',
+    long_description=open('README.md').read() + "\n",
+    packages=find_packages(),
+    install_requires=requirements,
+    test_requirements=test_requirements,
 
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'main = Texture_Synthesis.Application:main'
         ]
     },
 
-    author = "Shoeboxam",
+    author="Shoeboxam",
     author_email="shoeboxam@gmail.com",
-    license = "License :: OSI Approved :: MIT License",
-    url = "https://github.com/Shoeboxam/Texture_Synthesis",
-    classifiers = [
+    license="License :: OSI Approved :: MIT License",
+    url="https://github.com/Shoeboxam/Texture_Synthesis",
+    classifiers=[
         'Programming Language :: Python :: 3'
     ]
 )
