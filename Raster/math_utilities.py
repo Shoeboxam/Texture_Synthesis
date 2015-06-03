@@ -81,6 +81,8 @@ def circular_mean(values, weights=None):
 
 
 def circular_sort(hues):
+    """Sorts values into smallest spanning contiguous list"""
+
     hues = sorted(hues)
 
     hue_mean = circular_mean(hues)

@@ -3,10 +3,9 @@ import json
 import colorsys
 
 from Raster.Raster import Raster
-from Raster.analyze import correlate, color_extract, variance, mean, cluster
-from Raster.filter import brightness, contrast, colorize, value_decomposite, composite, layer_decomposite, merge_similar
-from Raster.math_utilities import circular_sort, polyfit
+from Raster import filter, math_utilities, analyze
 
+import numpy as np
 
 def template_detect(target, template_path, threshold):
     """Finds all occurrences of templates in target directory"""
@@ -26,7 +25,7 @@ def template_detect(target, template_path, threshold):
             # template with highest correlation is selected
             highest_correlation = [0, "null"]
             for template, template_filename in zip(template_images, template_filenames):
-                correlation = correlate(template, candidate)
+                correlation = analyze.correlate(template, candidate)
 
                 if correlation > highest_correlation[0]:
                     highest_correlation = [correlation, template_filename]
@@ -46,13 +45,13 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
         output_path = os.path.split(output_directory + key)[0]
         img = Raster.from_path(analysis_directory + key, 'RGBA')
 
-        layer_map = cluster(img, 4)
-        image_clusters, guide = merge_similar(*layer_decomposite(img, layer_map))
+        layer_map = analyze.cluster(img, 4)
+        image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(img, layer_map))
 
         segment_metalist = []
 
         for segment in image_clusters:
-            colors = color_extract(segment, sections)[:, 3]
+            colors = analyze.color_extract(segment, sections)[:, 3]
 
             hues = []
             sats = []
@@ -65,12 +64,12 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
                 sats.append(s)
                 vals.append(v)
 
-            hues = circular_sort(hues)
+            hues = math_utilities.circular_sort(hues)
             sats = sorted(sats)[::-1]
             vals = sorted(vals)
 
-            data_variance = variance(img, 'V')
-            lightness = mean(img, 'V')
+            data_variance = analyze.variance(img, 'V')
+            lightness = analyze.mean(img, 'V')
 
             segment_metalist.append({
                 'template': template_name,
@@ -137,24 +136,44 @@ def populate_images(templates_path, metadata_pack, output_path):
 
 
 def apply_template(image, json_data):
-    # Adjust contrast
-    contrast_mult = (variance(image, 'V') - json_data['variance']) * .3
-    image = contrast(image, contrast_mult)
+    # Split into clusters
+    pieces = filter.layer_decomposite(image, json_data['cluster_map'])
 
-    # Adjust lightness
-    lightness_adjustment = json_data['lightness'] - mean(image, 'V')
-    image = brightness(image, lightness_adjustment)
+    altered_pieces = []
+    for segment, cluster_data in zip(pieces, json_data['segment_dicts']):
 
-    # Adjust coloration
-    layer_count = len(json_data['hues'])
-    components = value_decomposite(image, layer_count)
+        # Adjust contrast
+        contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
+        staged_image = filter.contrast(segment, contrast_mult)
 
-    # TODO: Workaround for modular polyfit- most likely offset from circular mean
-    coefficients = polyfit(json_data['hues'], json_data['sats'])
+        # Adjust lightness
+        lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
+        staged_image = filter.brightness(staged_image, lightness_adjustment)
 
-    colorized_components = []
-    for index, layer in enumerate(components):
-        layer = colorize(layer, json_data['hues'][index], json_data['sats'][index], 0, 1., 1., 0.0)
-        colorized_components.append(layer)
+        # Adjust coloration
+        layer_count = len(cluster_data['hues'])*2
+        components = filter.value_decomposite(staged_image, layer_count)
 
-    return composite(colorized_components)
+        sat_poly_raw = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
+
+        sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
+        linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
+        hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
+
+        colorized_components = []
+        for index, layer in enumerate(components):
+
+            normalized_index = float(index) / len(components)
+
+            hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
+            sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
+
+            # Reduce sat in lighter areas of image
+            sat_target -= pow(2,(-5 * normalized_index)) / 2 -.05
+
+            layer = filter.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
+            colorized_components.append(layer)
+
+        altered_pieces.append(filter.composite(colorized_components))
+
+    return filter.composite(altered_pieces)

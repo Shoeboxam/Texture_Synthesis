@@ -5,6 +5,8 @@ from sklearn.feature_extraction import image
 
 from Raster import math_utilities as math
 
+from numpy import exp
+
 
 def extrema(raster, channel):
     data = raster.channel(channel, opaque=True)
@@ -46,7 +48,7 @@ def cluster(raster, pieces):
     graph = image.img_to_graph(raster.get_tiered())
 
     beta = 5
-    graph.data = np.exp(-beta * graph.data / raster.get_opaque().std())
+    graph.data = exp(-beta * graph.data / raster.get_opaque().std())
 
     labels = spectral_clustering(graph, n_clusters=pieces,
                                  assign_labels='discretize',

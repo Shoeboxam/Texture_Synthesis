@@ -47,9 +47,9 @@ def vander_matrix():
     print(y)
     plt.scatter(x, y)
 
-    test_bank = np.linspace(min(x), max(x), 50)
+    test_bank = np.linspace(0, 1, 50)
 
-    poly = polysolve(polyfit(x, y), test_bank)
+    poly = polysolve((.5, 0, 0, 0), test_bank)
     plt.plot(test_bank, poly)
 
     plt.show()
@@ -67,3 +67,17 @@ def spectral_decomp():
     for cluster in pieces:
         cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
         index += 1
+
+def clusterator():
+    image = Raster.Raster.from_path(
+        r"C:\Users\mike_000\Desktop\tree.png")
+
+    cluster_map = analyze.cluster(image, pieces=5)
+    pieces, guide = filter.layer_decomposite(image, cluster_map)
+    pieces = filter.merge_similar(pieces)
+
+    index = 0
+    for cluster in pieces:
+        cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
+        index += 1
+vander_matrix()

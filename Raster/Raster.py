@@ -108,7 +108,7 @@ class Raster(object):
         return np.array(solid)
 
     def get_tiered(self):
-        return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 4))
+        return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 3))
 
     @classmethod
     def from_array(cls, array, mode):
