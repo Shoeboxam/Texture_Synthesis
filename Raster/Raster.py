@@ -3,10 +3,6 @@ import numpy as np
 import colorsys
 
 
-np.set_printoptions(precision=3)
-np.set_printoptions(suppress=True)
-np.set_printoptions(threshold=np.nan)
-
 bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
 channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
 
@@ -16,8 +12,8 @@ class Raster(object):
     def __init__(self, colors, shape, mode, mask=None):
 
         self._shape = shape
-        self._colors = colors
-        self._mask = mask
+        self._colors = np.array(colors)
+        self._mask = np.array(mask)
         self._mode = mode
 
     @property
@@ -35,7 +31,7 @@ class Raster(object):
         if len(values) != np.product(self._shape):
             raise ValueError("Length of colors does not match shape")
 
-        self._colors = values
+        self._colors = np.array(values)
 
     @property
     def mask(self):
@@ -62,8 +58,9 @@ class Raster(object):
     def mode(self, mode):
         if mode not in channel_depth.keys():
             raise ValueError("Mode is not recognized")
-        if channel_depth[mode] != self._colors.shape[1]:
+        if channel_depth[mode] != np.array(self._colors).shape[1]:
             raise ValueError("Color mode incompatible with number of channels given")
+        self._mode = mode
 
     @classmethod
     def from_image(cls, image, mode=None):
@@ -137,11 +134,10 @@ class Raster(object):
 
         # REMINDER: Only works for HSV/RGB switching
         if identifier not in self._mode:
-            if self._mode == 'RGB':
+            if 'RGB' in self._mode:
                 self.to_hsv()
             else:
                 self.to_rgb()
-
         column = self._mode.index(identifier)
         return colors[:, column]
 

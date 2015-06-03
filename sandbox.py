@@ -4,11 +4,6 @@ from Raster import Raster, filter, analyze
 from Utility.math_utilities import *
 
 
-np.set_printoptions(precision=3)
-np.set_printoptions(suppress=True)
-np.set_printoptions(threshold=np.nan)
-
-
 def smooth_point():
     minima = 0.399
     maxima = 0.42
@@ -60,14 +55,15 @@ def vander_matrix():
     plt.show()
 
 
-def specular():
+def spectral_decomp():
     image = Raster.Raster.from_path(
         r"F:\Users\mike_000\Textures\Invictus_Textures\assets\minecraft\textures\items\bed.png")
-    pieces, guide = filter.spectral_decomposite(image, merge=True)
+
+    cluster_map = analyze.cluster(image, pieces=5)
+    pieces, guide = filter.layer_decomposite(image, cluster_map)
+    pieces = filter.merge_similar(pieces)
 
     index = 0
     for cluster in pieces:
         cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
         index += 1
-
-vander_matrix()

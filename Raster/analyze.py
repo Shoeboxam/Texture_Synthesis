@@ -2,6 +2,9 @@ from sklearn.cluster import KMeans
 from scipy.stats.stats import pearsonr
 from Utility import math_utilities as math
 
+from sklearn.cluster import spectral_clustering
+from sklearn.feature_extraction import image
+
 
 def extrema(raster, channel):
     data = raster.channel(channel, opaque=True)
@@ -37,3 +40,16 @@ def correlate(a, b):
     if pearsonr(a.mask, b.mask)[0] > .99:
         return pearsonr(a.channel('V'), b.channel('V'))[0]
     return 0
+
+
+def cluster(raster, pieces):
+    graph = image.img_to_graph(raster.get_tiered())
+
+    beta = 5
+    graph.data = np.exp(-beta * graph.data / raster.get_opaque().std())
+
+    labels = spectral_clustering(graph, n_clusters=pieces,
+                                 assign_labels='discretize',
+                                 random_state=1)
+
+    return labels.reshape(raster.with_alpha().shape)[:, 0]

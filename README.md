@@ -6,7 +6,7 @@ Procedural sprite generation to automate Minecraft resource pack mod support.
 
 Detects and classifies patterns in the default resource pack. Distinctive patterns are tied to templates. Every default image classified with a template is profiled, and the data is stored in a tree of json files.
 
-The process of profiling decomposes each template into spectral clusters, or zones of discrete information. Predominant colors, data variance and lightness are then calculated from each of the component clusters of every image. This data taken in profiling is used to mould the custom graphic templates into completed graphics.
+The process of profiling decomposes each template into spectral clusters, or zones of discrete information. Predominant colors, data variance and lightness are then calculated from each of the component clusters of every image. This data taken in profiling is used to mould custom graphic templates into completed graphics.
 
 This project has support for converting between Github repository format (mod patches) and resource pack format (whole), and can read mods and resourcepacks directly from a Minecraft instance.
 

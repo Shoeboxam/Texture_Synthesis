@@ -77,7 +77,7 @@ def circular_mean(values, weights=None):
 
     # Due to sinusoidal nature and period of one, ...
     # modulus merely moves the point into range
-    return offset % 1
+    return round(offset, 10) % 1
 
 
 def circular_sort(hues):
