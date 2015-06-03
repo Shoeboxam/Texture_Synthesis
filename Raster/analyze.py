@@ -1,9 +1,9 @@
 from sklearn.cluster import KMeans
 from scipy.stats.stats import pearsonr
-from Utility import math_utilities as math
-
 from sklearn.cluster import spectral_clustering
 from sklearn.feature_extraction import image
+
+from Raster import math_utilities as math
 
 
 def extrema(raster, channel):

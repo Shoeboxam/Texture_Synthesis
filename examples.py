@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from Raster import Raster, filter, analyze
-from Utility.math_utilities import *
+from Raster.math_utilities import *
 
 
 def smooth_point():

@@ -3,10 +3,9 @@ import json
 import colorsys
 
 from Raster.Raster import Raster
-
 from Raster.analyze import correlate, color_extract, variance, mean
 from Raster.filter import brightness, contrast, colorize, value_decomposite, composite, spectral_decomposite
-from Utility.math_utilities import circular_sort, polyfit, polysolve
+from Raster.math_utilities import circular_sort, polyfit
 
 
 def template_detect(target, template_path, threshold):

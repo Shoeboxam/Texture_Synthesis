@@ -1,5 +1,5 @@
 from Raster import Raster, analyze
-from Utility.math_utilities import *
+from Raster.math_utilities import *
 
 
 def test_math():

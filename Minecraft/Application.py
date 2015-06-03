@@ -1,8 +1,8 @@
 import json
 
-from settings import *
-from Utility.file_utilities import *
-from Utility.image_utilities import template_detect, build_metadata_tree, populate_images
+from Minecraft.settings import *
+from Minecraft.file_utilities import *
+from Minecraft.image_utilities import template_detect, build_metadata_tree, populate_images
 
 def main():
     create_default()

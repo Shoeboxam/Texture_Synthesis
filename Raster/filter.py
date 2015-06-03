@@ -1,14 +1,14 @@
 import copy
 from math import pi, sin, cos, sqrt
+from itertools import combinations
+
 import numpy as np
+import networkx
+from networkx.algorithms.components.connected import connected_components
 
 from Raster.analyze import mean, extrema
 from Raster import Raster
-from Utility.math_utilities import circular_mean, linear_mean, clamp
-
-from itertools import combinations
-import networkx
-from networkx.algorithms.components.connected import connected_components
+from Raster.math_utilities import circular_mean, linear_mean, clamp
 
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
