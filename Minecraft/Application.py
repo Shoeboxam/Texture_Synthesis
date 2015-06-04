@@ -61,22 +61,29 @@ class MinecraftSynthesizer:
         """Extract representative colors for every image that matches template"""
 
         # Load all images into memory
-        # raster_dictionary = image_utilities.load_directory(self.default_pack)
+        raster_dictionary = image_utilities.load_directory(self.default_pack)
+        print("Loaded defaults.")
 
         # Find templates from loaded images
         image_graph = image_utilities.load_graph(self.home + '\\image_graph.json')
-        # image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=image_graph)
-        # image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
+        image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=image_graph)
+        image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
+        print("Updated image graph.")
 
+        # Update template directory
         template_paths = image_utilities.get_templates(image_graph)
-
         image_utilities.prepare_templates(
             self.default_pack, self.resource_pack, template_paths, self.template_directory_autogen)
+        print("Wrote additions to templates.")
 
-        # image_utilities.build_metadata_tree(self.diff_pack, self.metadata_pack, self.template_directory_autogen, keys, 5)
-        #
-        # # Converts json files to images with templates
-        # image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
+        key_dict = image_utilities.template_reader(template_paths, image_graph)
+
+        # Create data mappings for all target files
+        image_utilities.build_metadata_tree(
+            self.diff_pack, self.metadata_pack, self.template_directory_autogen, key_dict, 5)
+
+        # Converts json files to images with templates
+        image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
 
 synthesizer = MinecraftSynthesizer(r"./config.json")
 

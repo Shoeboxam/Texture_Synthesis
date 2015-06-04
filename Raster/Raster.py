@@ -2,6 +2,8 @@ from PIL import Image
 import numpy as np
 import colorsys
 
+import os
+
 
 bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
 channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
@@ -9,12 +11,17 @@ channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4
 
 class Raster(object):
 
-    def __init__(self, colors, shape, mode, mask=None):
+    def __init__(self, colors, shape, mode, mask=None, name=None):
 
         self._shape = shape
         self._colors = np.array(colors)
         self._mask = np.array(mask)
         self._mode = mode
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def shape(self):
@@ -63,7 +70,7 @@ class Raster(object):
         self._mode = mode
 
     @classmethod
-    def from_image(cls, image, mode=None):
+    def from_image(cls, image, mode=None, name=None):
 
         if mode is not None:
             image = image.convert(mode)
@@ -83,11 +90,12 @@ class Raster(object):
         colors = pixels[:, :channels-1]
         mask = pixels[:, channels-1]
 
-        return cls(colors, image.size, image.mode.replace('A', ''), mask)
+        return cls(colors, image.size, image.mode.replace('A', ''), mask, name=name)
 
     @classmethod
     def from_path(cls, path, mode=None):
-        return cls.from_image(Image.open(path), mode)
+        name = os.path.split(path)[1]
+        return cls.from_image(Image.open(path), mode, name=name)
 
     # Combines alpha channel with color
     def with_alpha(self):

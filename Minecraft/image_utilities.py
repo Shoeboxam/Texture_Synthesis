@@ -99,39 +99,24 @@ def prepare_templates(default_pack, resource_pack, path_list, template_directory
             copy(resource_pack + path, template_directory + '\\resource\\' + os.path.split(path)[1])
 
 
-def template_reader(target, template_path, threshold):
-    """DEPRECATED: Finds all occurrences of templates in target directory"""
+def template_reader(template_paths, image_graph):
+    '''Uses the image graph to create a dict of targets'''
+    split_vec = np.vectorize(os.path.split)
+    image_keys_list = zip(np.array(split_vec(template_paths))[:, 1], connected_components(image_graph))
 
-    # Load template images into variables
     image_keys = {}
-    template_filenames = os.listdir(template_path + "\\keys\\")
-    template_images = []
-    for filename in template_filenames:
-        template_images.append(Raster.from_path(template_path + "\\keys\\" + filename))
 
-    # Check every file against every template
-    for root, folders, files in os.walk(target):
-        for current_file in files:
-            full_path = root + "\\" + current_file
-            candidate = Raster.from_path(full_path)
-            # template with highest correlation is selected
-            highest_correlation = [0, "null"]
-            for template, template_filename in zip(template_images, template_filenames):
-                correlation = analyze.correlate(template, candidate)
-
-                if correlation > highest_correlation[0]:
-                    highest_correlation = [correlation, template_filename]
-
-            if highest_correlation[0] > threshold:
-                image_keys[full_path.replace(target, "")] = highest_correlation[1]
+    for template, targets in image_keys_list:
+        for node in targets:
+            image_keys[template] = node
 
     return image_keys
 
 
-def build_metadata_tree(analysis_directory, output_directory, template_directory, image_keys, sections):
+def build_metadata_tree(analysis_directory, output_directory, template_directory, keys, sections):
     """Save representative data to json files in meta pack"""
 
-    for key, template_name in image_keys.items():
+    for key, template_name in keys.items():
         # print(key, template_name)
 
         output_path = os.path.split(output_directory + key)[0]
@@ -148,39 +133,7 @@ def build_metadata_tree(analysis_directory, output_directory, template_directory
             template_components.append(Raster.from_path(template_path + '\\' + image_name))
 
         for segment, template_segment in image_clusters, template_components:
-
-            equivalent = False
-            if np.array_equal(segment.get_opaque(), template_segment.get_opaque()):
-                equivalent = True
-
-            colors = analyze.color_extract(segment, sections)[:, 3]
-
-            hues = []
-            sats = []
-            vals = []
-
-            for color in colors:
-                r, g, b = color
-                h, s, v = colorsys.rgb_to_hsv(r, g, b)
-                hues.append(h)
-                sats.append(s)
-                vals.append(v)
-
-            hues = math_utilities.circular_sort(hues)
-            sats = sorted(sats)[::-1]
-            vals = sorted(vals)
-
-            data_variance = analyze.variance(img, 'V')
-            lightness = analyze.mean(img, 'V')
-
-            segment_metalist.append({
-                'template': template_name,
-                'apply': equivalent,
-                'hues': hues,
-                'sats': sats,
-                'vals': vals,
-                'lightness': lightness,
-                'variance': data_variance})
+            segment_metalist.append(analyze_image(segment, template_segment, sections))
 
         meta_dict = {
             'segment_dicts': json.dumps(segment_metalist),
@@ -194,6 +147,41 @@ def build_metadata_tree(analysis_directory, output_directory, template_directory
         # Save json file
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
             json.dump(meta_dict, output_file)
+
+
+def analyze_image(image, template, granularity):
+    equivalent = False
+    if np.array_equal(image.get_opaque(), template.get_opaque()):
+        equivalent = True
+
+    colors = analyze.color_extract(image, granularity)[:, 3]
+
+    hues = []
+    sats = []
+    vals = []
+
+    for color in colors:
+        r, g, b = color
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        hues.append(h)
+        sats.append(s)
+        vals.append(v)
+
+    hues = math_utilities.circular_sort(hues)
+    sats = sorted(sats)[::-1]
+    vals = sorted(vals)
+
+    data_variance = analyze.variance(image, 'V')
+    lightness = analyze.mean(image, 'V')
+
+    return {
+        'template': template.name,
+        'apply': equivalent,
+        'hues': hues,
+        'sats': sats,
+        'vals': vals,
+        'lightness': lightness,
+        'variance': data_variance}
 
 
 def list_templates(template_path):
