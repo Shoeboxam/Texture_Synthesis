@@ -1,82 +1,77 @@
+from Minecraft import file_utilities, image_utilities, web_utilities
+
 import json
-
-from Minecraft.file_utilities import extract_files, resource_filter, repository_format, get_untextured, copytree_wrapper
-from Minecraft.image_utilities import template_detect, build_metadata_tree, populate_images
-from Minecraft.web_utilities import clone_repo
-
 from shutil import rmtree
-
 from os.path import normpath, expanduser
 
-config = json.load(open("./config.json"))
-home = normpath(expanduser(config['home']))
 
-resource_pack = home + '\\resource_pack\\'
-mods_directory = home + "\\mods\\"
-template_directory = home + '\\templates\\'
-diff_pack = home + '\\default_diff\\'
-metadata_pack = home + '\\default_metadata\\'
-output_path = home + '\\synthesized_resources\\'
-default_pack = home + '\\default\\'
-key_repository = home + '\\key_repository\\'
+class MinecraftSynthesizer:
 
+    def __init__(self, config_path):
+        self.config = json.load(open(config_path))
+        self.home = normpath(expanduser(self.config['home']))
+        self.verbose = self.config['verbose']
 
-def main():
-    setup_environment()
-    # create_default()
-    # create_diff()
-    # image_synthesis()
+        self.resource_pack = self.home + '\\resource_pack\\'
+        self.mods_directory = self.home + "\\mods\\"
+        self.template_directory = self.home + '\\templates\\'
+        self.diff_pack = self.home + '\\default_diff\\'
+        self.metadata_pack = self.home + '\\default_metadata\\'
+        self.output_path = self.home + '\\synthesized_resources\\'
+        self.default_pack = self.home + '\\default\\'
+        self.key_repository = self.home + '\\key_repository\\'
 
+        self.setup_environment()
 
-def setup_environment():
-    clone_repo(config['resource_pack'], resource_pack)
-    clone_repo(config['key_repository'], key_repository)
+    def setup_environment(self):
+        web_utilities.clone_repo(self.config['resource_pack'], self.resource_pack)
+        web_utilities.clone_repo(self.config['key_repository'], self.key_repository)
 
+    def create_default(self):
+        """Creates a default texture pack in mod repository format"""
 
-def create_default():
-    """Creates a default texture pack in mod repository format"""
+        temp_pack = self.home + "\\resource_temp\\"
 
-    temp_pack = home + "\\resource_temp\\"
+        # Create staging pack
+        file_utilities.extract_files(self.mods_directory, temp_pack)
+        file_utilities.resource_filter(temp_pack)
 
-    # Create staging pack
-    extract_files(mods_directory, temp_pack)
-    resource_filter(temp_pack)
+        # Convert to repo format and output to default pack path
+        file_utilities.repository_format(temp_pack, self.default_pack, self.key_repository)
 
-    # Convert to repo format and output to default pack path
-    repository_format(temp_pack, default_pack, key_repository)
+        # Delete staging pack
+        rmtree(temp_pack, True)
 
-    # Delete staging pack
-    rmtree(temp_pack, True)
+    def create_diff(self):
+        """Creates a pack of untextured files in mod repository format"""
 
+        # Gets a list of textures that have not been made via file diff
+        untextured_paths = file_utilities.get_untextured(self.resource_pack, self.default_pack)
 
-def create_diff():
-    """Creates a pack of untextured files in mod repository format"""
+        # Create a pack with the untextured files
+        file_utilities.copytree_wrapper(self.default_pack, self.diff_pack, untextured_paths)
+        file_utilities.resource_filter(self.diff_pack)
 
-    # Gets a list of textures that have not been made via file diff
-    untextured_paths = get_untextured(resource_pack, default_pack)
+    def image_synthesis(self):
+        """Extract representative colors for every image that matches template"""
 
-    # Create a pack with the untextured files
-    copytree_wrapper(default_pack, diff_pack, untextured_paths)
-    resource_filter(diff_pack)
+        keys = image_utilities.template_reader(self.diff_pack, self.template_directory, threshold=.85)
 
+        # # print(json.dumps(keys)) 800 504 5854
 
-def image_synthesis():
-    """Extract representative colors for every image that matches template"""
+        keyfile = open('keyfile.txt', 'r')
+        keyfile.write(json.dumps(keys) + "\n")
 
-    keys = template_detect(diff_pack, template_directory, threshold=.85)
+        # keys = json.loads(keyfile.readline())
+        # print(keys)
+        image_utilities.build_metadata_tree(self.diff_pack, self.metadata_pack, self.template_directory, keys, 5)
 
-    # # print(json.dumps(keys))
+        # Converts json files to images with templates
+        image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
 
-    keyfile = open('keyfile.txt', 'r')
-    keyfile.write(json.dumps(keys) + "\n")
+synthesizer = MinecraftSynthesizer(r"./config.json")
 
-    # keys = json.loads(keyfile.readline())
-    # print(keys)
-    build_metadata_tree(diff_pack, metadata_pack, keys, 5)
-
-    # Converts json files to images with templates
-    populate_images(template_directory, metadata_pack, output_path)
-
-
-if __name__ == "__main__":
-    main()
+synthesizer.setup_environment()
+synthesizer.create_default()
+synthesizer.create_diff()
+synthesizer.image_synthesis()

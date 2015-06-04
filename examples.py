@@ -55,19 +55,6 @@ def vander_matrix():
     plt.show()
 
 
-def spectral_decomp():
-    image = Raster.Raster.from_path(
-        r"F:\Users\mike_000\Textures\Invictus_Textures\assets\minecraft\textures\items\bed.png")
-
-    cluster_map = analyze.cluster(image, pieces=5)
-    pieces, guide = filter.layer_decomposite(image, cluster_map)
-    pieces = filter.merge_similar(pieces)
-
-    index = 0
-    for cluster in pieces:
-        cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
-        index += 1
-
 def clusterator():
     image = Raster.Raster.from_path(
         r"C:\Users\mike_000\Desktop\tree.png")
@@ -80,4 +67,3 @@ def clusterator():
     for cluster in pieces:
         cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
         index += 1
-vander_matrix()

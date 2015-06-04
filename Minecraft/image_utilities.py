@@ -7,7 +7,8 @@ from Raster import filter, math_utilities, analyze
 
 import numpy as np
 
-def template_detect(target, template_path, threshold):
+
+def template_reader(target, template_path, threshold):
     """Finds all occurrences of templates in target directory"""
 
     # Load template images into variables
@@ -36,7 +37,7 @@ def template_detect(target, template_path, threshold):
     return image_keys
 
 
-def build_metadata_tree(analysis_directory, output_directory, image_keys, sections):
+def build_metadata_tree(analysis_directory, output_directory, template_directory, image_keys, sections):
     """Save representative data to json files in meta pack"""
 
     for key, template_name in image_keys.items():
@@ -50,7 +51,17 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
         segment_metalist = []
 
-        for segment in image_clusters:
+        template_components = []
+        template_path = template_directory + '\\' + template_name
+        for image_name in os.listdir(template_path):
+            template_components.append(Raster.from_path(template_path + '\\' + image_name))
+
+        for segment, template_segment in image_clusters, template_components:
+
+            equivalent = False
+            if np.array_equal(segment.get_opaque(), template_segment.get_opaque()):
+                equivalent = True
+
             colors = analyze.color_extract(segment, sections)[:, 3]
 
             hues = []
@@ -73,6 +84,7 @@ def build_metadata_tree(analysis_directory, output_directory, image_keys, sectio
 
             segment_metalist.append({
                 'template': template_name,
+                'apply': equivalent,
                 'hues': hues,
                 'sats': sats,
                 'vals': vals,
@@ -142,38 +154,44 @@ def apply_template(image, json_data):
     altered_pieces = []
     for segment, cluster_data in zip(pieces, json_data['segment_dicts']):
 
-        # Adjust contrast
-        contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
-        staged_image = filter.contrast(segment, contrast_mult)
+        if cluster_data['apply']:
+            # Adjust contrast
+            contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
+            staged_image = filter.contrast(segment, contrast_mult)
 
-        # Adjust lightness
-        lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
-        staged_image = filter.brightness(staged_image, lightness_adjustment)
+            # Adjust lightness
+            lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
+            staged_image = filter.brightness(staged_image, lightness_adjustment)
 
-        # Adjust coloration
-        layer_count = len(cluster_data['hues'])*2
-        components = filter.value_decomposite(staged_image, layer_count)
+            # Adjust coloration
+            layer_count = len(cluster_data['hues'])*2
+            components = filter.value_decomposite(staged_image, layer_count)
 
-        sat_poly_raw = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
+            sat_poly_raw = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
 
-        sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
-        linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
-        hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
+            sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
+            linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
+            hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
 
-        colorized_components = []
-        for index, layer in enumerate(components):
+            colorized_components = []
+            for index, layer in enumerate(components):
 
-            normalized_index = float(index) / len(components)
+                normalized_index = float(index) / len(components)
 
-            hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
-            sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
+                hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
+                sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
 
-            # Reduce sat in lighter areas of image
-            sat_target -= pow(2,(-5 * normalized_index)) / 2 -.05
+                # Reduce sat in lighter areas of image
+                sat_target -= pow(2, (-5 * normalized_index)) / 2 - .05
 
-            layer = filter.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
-            colorized_components.append(layer)
+                layer = filter.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
+                colorized_components.append(layer)
 
-        altered_pieces.append(filter.composite(colorized_components))
+            staged_image = filter.composite(colorized_components)
+
+        else:
+            staged_image = segment
+
+        altered_pieces.append(staged_image)
 
     return filter.composite(altered_pieces)
