@@ -8,12 +8,13 @@ from os.path import normpath, expanduser
 class MinecraftSynthesizer:
 
     def __init__(self, config_path):
+        self.config = json.load(open(config_path))
         self.verbose = self.config['verbose']
 
-        self.config = json.load(open(config_path))
         self.home = normpath(expanduser(self.config['home']))
 
         self.resource_pack = self.home + '\\resource_pack\\'
+        self.default_pack = self.home + '\\default_pack\\'
         self.mods_directory = self.home + "\\mods\\"
 
         self.template_directory = self.home + '\\templates\\'
@@ -23,7 +24,6 @@ class MinecraftSynthesizer:
         self.metadata_pack = self.home + '\\default_metadata\\'
 
         self.output_path = self.home + '\\synthesized_resources\\'
-        self.default_pack = self.home + '\\default\\'
         self.key_repository = self.home + '\\key_repository\\'
 
         self.setup_environment()
@@ -60,24 +60,26 @@ class MinecraftSynthesizer:
     def image_synthesis(self):
         """Extract representative colors for every image that matches template"""
 
-        raster_dictionary = image_utilities.load_directory(self.default_pack)
+        # Load all images into memory
+        # raster_dictionary = image_utilities.load_directory(self.default_pack)
 
         # Find templates from loaded images
-        graph = image_utilities.load_graph(self.home + '\\image_graph.json')
-        image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=graph)
-        image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
+        image_graph = image_utilities.load_graph(self.home + '\\image_graph.json')
+        # image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=image_graph)
+        # image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
 
         template_paths = image_utilities.get_templates(image_graph)
 
-        # TODO: Load and decomposite template paths/prep for metadata building
+        image_utilities.prepare_templates(
+            self.default_pack, self.resource_pack, template_paths, self.template_directory_autogen)
 
-        image_utilities.build_metadata_tree(self.diff_pack, self.metadata_pack, self.template_directory, keys, 5)
-
-        # Converts json files to images with templates
-        image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
+        # image_utilities.build_metadata_tree(self.diff_pack, self.metadata_pack, self.template_directory_autogen, keys, 5)
+        #
+        # # Converts json files to images with templates
+        # image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
 
 synthesizer = MinecraftSynthesizer(r"./config.json")
 
-synthesizer.create_default()
-synthesizer.create_diff()
+# synthesizer.create_default()
+# synthesizer.create_diff()
 synthesizer.image_synthesis()

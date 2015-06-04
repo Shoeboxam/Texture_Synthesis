@@ -5,17 +5,6 @@ from Raster.math_utilities import *
 
 from Minecraft import image_utilities, file_utilities
 
-texture_directory = r"C:\Users\mike_000\Desktop\textures"
-file_utilities.resource_filter(texture_directory)
-
-raster_dictionary = image_utilities.load_directory(texture_directory)
-
-graph = image_utilities.load_graph(r"C:\Users\mike_000\Desktop\graph_image.json")
-image_graph = image_utilities.template_extract(raster_dictionary, 0, graph)
-image_utilities.save_graph(r"C:\Users\mike_000\Desktop\graph_image.json", image_graph)
-
-print(image_utilities.get_templates(image_graph))
-
 
 def smooth_point():
     minima = 0.399
@@ -33,7 +22,7 @@ def smooth_point():
     plt.show()
 
 
-def image_process():
+def break_apart():
     img = Raster.Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
     img = filter.colorize(img, 1, .1, .2, .3, .01, 0)
     img = filter.contrast(img, 0.12)
@@ -45,27 +34,10 @@ def image_process():
         pil.show()
         pil.save(r"C:\Users\mike_000\Desktop\pack_" + str(index) + ".png")
 
-    # Tester
-    print(circular_mean((.23, .51, .98)))
-
 
 def open_show():
     image = Raster.Raster.from_path(r"C:\Users\mike_000\Desktop\singular.png")
     image.get_image().show()
-
-
-def vander_matrix():
-    y = sorted(np.random.rand(7, 1).flatten())
-    x = sorted(np.random.rand(7, 1).flatten())
-    print(y)
-    plt.scatter(x, y)
-
-    test_bank = np.linspace(0, 1, 50)
-
-    poly = polysolve((.5, 0, 0, 0), test_bank)
-    plt.plot(test_bank, poly)
-
-    plt.show()
 
 
 def clusterator():
@@ -80,3 +52,16 @@ def clusterator():
     for cluster in pieces:
         cluster.get_image().save(r"F:\Users\mike_000\Desktop\output\\" + str(index) + ".png")
         index += 1
+
+
+def templater():
+    texture_directory = r"C:\Users\mike_000\Desktop\textures"
+    file_utilities.resource_filter(texture_directory)
+
+    raster_dictionary = image_utilities.load_directory(texture_directory)
+
+    graph = image_utilities.load_graph(r"C:\Users\mike_000\Desktop\graph_image.json")
+    image_graph = image_utilities.template_extract(raster_dictionary, 0, graph)
+    image_utilities.save_graph(r"C:\Users\mike_000\Desktop\graph_image.json", image_graph)
+
+    print(image_utilities.get_templates(image_graph))

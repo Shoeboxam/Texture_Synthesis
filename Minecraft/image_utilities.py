@@ -9,6 +9,8 @@ from networkx.readwrite import json_graph
 from itertools import combinations
 import operator
 
+from shutil import copy
+
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
@@ -76,17 +78,29 @@ def template_extract(raster_dict, threshold=0, network=None):
             # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
             network.add_edge(group_inner[0], group_outer[0], weight=correlation)
 
-    for group in connected_components(network):
-        if len(group) > 1:
-            for node in group:
-                print(node)
-            print(" ")
+    # for group in connected_components(network):
+    #     if len(group) > 1:
+    #         for node in group:
+    #             print(node)
+    #         print(" ")
 
     return network
 
 
+def prepare_templates(default_pack, resource_pack, path_list, template_directory):
+    if not os.path.exists(template_directory):
+        os.mkdir(template_directory)
+        os.mkdir(template_directory + '\\default\\')
+        os.mkdir(template_directory + '\\resource\\')
+
+    for path in path_list:
+        if os.path.exists(resource_pack + path):
+            copy(default_pack + path, template_directory + '\\default\\' + os.path.split(path)[1])
+            copy(resource_pack + path, template_directory + '\\resource\\' + os.path.split(path)[1])
+
+
 def template_reader(target, template_path, threshold):
-    """DEPRECATED Finds all occurrences of templates in target directory"""
+    """DEPRECATED: Finds all occurrences of templates in target directory"""
 
     # Load template images into variables
     image_keys = {}
