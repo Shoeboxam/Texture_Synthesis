@@ -138,6 +138,11 @@ class Raster(object):
                 self.to_hsv()
             else:
                 self.to_rgb()
+
+        # Common error point- Palettized images are not cast into HSV, so the Value channel cannot be found.
+        # Fix by setting the optional mode argument upon image load to RGB
+
+        # print(self.mode)
         column = self._mode.index(identifier)
         return colors[:, column]
 

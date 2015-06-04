@@ -8,15 +8,20 @@ from os.path import normpath, expanduser
 class MinecraftSynthesizer:
 
     def __init__(self, config_path):
+        self.verbose = self.config['verbose']
+
         self.config = json.load(open(config_path))
         self.home = normpath(expanduser(self.config['home']))
-        self.verbose = self.config['verbose']
 
         self.resource_pack = self.home + '\\resource_pack\\'
         self.mods_directory = self.home + "\\mods\\"
+
         self.template_directory = self.home + '\\templates\\'
+        self.template_directory_autogen = self.home + '\\templates_autogen\\'
+
         self.diff_pack = self.home + '\\default_diff\\'
         self.metadata_pack = self.home + '\\default_metadata\\'
+
         self.output_path = self.home + '\\synthesized_resources\\'
         self.default_pack = self.home + '\\default\\'
         self.key_repository = self.home + '\\key_repository\\'
@@ -55,15 +60,17 @@ class MinecraftSynthesizer:
     def image_synthesis(self):
         """Extract representative colors for every image that matches template"""
 
-        keys = image_utilities.template_reader(self.diff_pack, self.template_directory, threshold=.85)
+        raster_dictionary = image_utilities.load_directory(self.default_pack)
 
-        # # print(json.dumps(keys)) 800 504 5854
+        # Find templates from loaded images
+        graph = image_utilities.load_graph(self.home + '\\image_graph.json')
+        image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=graph)
+        image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
 
-        keyfile = open('keyfile.txt', 'r')
-        keyfile.write(json.dumps(keys) + "\n")
+        template_paths = image_utilities.get_templates(image_graph)
 
-        # keys = json.loads(keyfile.readline())
-        # print(keys)
+        # TODO: Load and decomposite template paths/prep for metadata building
+
         image_utilities.build_metadata_tree(self.diff_pack, self.metadata_pack, self.template_directory, keys, 5)
 
         # Converts json files to images with templates
@@ -71,7 +78,6 @@ class MinecraftSynthesizer:
 
 synthesizer = MinecraftSynthesizer(r"./config.json")
 
-synthesizer.setup_environment()
 synthesizer.create_default()
 synthesizer.create_diff()
 synthesizer.image_synthesis()

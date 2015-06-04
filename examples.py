@@ -3,6 +3,19 @@ import matplotlib.pyplot as plt
 from Raster import Raster, filter, analyze
 from Raster.math_utilities import *
 
+from Minecraft import image_utilities, file_utilities
+
+texture_directory = r"C:\Users\mike_000\Desktop\textures"
+file_utilities.resource_filter(texture_directory)
+
+raster_dictionary = image_utilities.load_directory(texture_directory)
+
+graph = image_utilities.load_graph(r"C:\Users\mike_000\Desktop\graph_image.json")
+image_graph = image_utilities.template_extract(raster_dictionary, 0, graph)
+image_utilities.save_graph(r"C:\Users\mike_000\Desktop\graph_image.json", image_graph)
+
+print(image_utilities.get_templates(image_graph))
+
 
 def smooth_point():
     minima = 0.399

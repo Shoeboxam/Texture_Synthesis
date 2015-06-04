@@ -2,14 +2,91 @@ import os
 import json
 import colorsys
 
+import networkx
+from networkx.algorithms.components.connected import connected_components
+from networkx.readwrite import json_graph
+
+from itertools import combinations
+import operator
+
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
 
 
+def load_graph(path):
+    try:
+        json_data = open(path, 'r')
+    except FileNotFoundError:
+        return None
+    return json_graph.node_link_graph(eval(json_data.read()))
+
+
+def save_graph(path, graph):
+    json_file = open(path, 'w')
+    json_file.write(str(json_graph.node_link_data(graph)))
+
+
+def load_directory(target):
+    raster_dict = {}
+    for root, folders, files in os.walk(target):
+        for current_file in files:
+            full_path = root + "\\" + current_file
+            candidate = Raster.from_path(full_path, 'RGBA')
+            raster_dict[full_path.replace(target, "")] = candidate
+
+    return raster_dict
+
+
+def get_templates(network, threshold=1):
+    """Returns most connected node of each bunch"""
+
+    template_list = []
+    for bunch in connected_components(network):
+        degree_vec = np.vectorize(network.degree)
+
+        node_rankings = zip(bunch, degree_vec(bunch))
+        template, rank = max(node_rankings, key=operator.itemgetter(1))
+
+        if rank >= threshold:
+            template_list.append(template)
+
+    return template_list
+
+
+def template_extract(raster_dict, threshold=0, network=None):
+
+    if network is None:
+        network = networkx.Graph()
+
+    new_elements = set(raster_dict.keys()) - set(network.nodes())
+    network.add_nodes_from(new_elements)
+
+    def center(nodes):
+        bunch = {}
+        for point in nodes:
+            bunch[point] = network.degree(point)
+        return max(bunch.items(), key=operator.itemgetter(1))[0]
+
+    for group_outer, group_inner in combinations(connected_components(network), 2):
+        correlation = analyze.correlate(raster_dict[center(group_outer)], raster_dict[center(group_inner)])
+
+        if correlation > threshold:
+            # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
+            network.add_edge(group_inner[0], group_outer[0], weight=correlation)
+
+    for group in connected_components(network):
+        if len(group) > 1:
+            for node in group:
+                print(node)
+            print(" ")
+
+    return network
+
+
 def template_reader(target, template_path, threshold):
-    """Finds all occurrences of templates in target directory"""
+    """DEPRECATED Finds all occurrences of templates in target directory"""
 
     # Load template images into variables
     image_keys = {}
