@@ -19,7 +19,7 @@ class CurseforgeSpider(Spider):
     def parse(self, response):
         for index in range(1, 16):
 
-        return [Project(name=e.extract()) for e in response.css("h2 a::text")]
+            return [Project(name=e.extract()) for e in response.css("h2 a::text")]
 
 
 def curseforge_mod_scrape(page):

@@ -1,4 +1,4 @@
-from Minecraft import file_utilities, image_utilities, web_utilities
+from Minecraft import file_utilities, image_utilities, web_utilities, metadata_utilities
 
 import json
 from shutil import rmtree
@@ -57,30 +57,34 @@ class MinecraftSynthesizer:
         file_utilities.copytree_wrapper(self.default_pack, self.diff_pack, untextured_paths)
         file_utilities.resource_filter(self.diff_pack)
 
-    def image_synthesis(self):
-        """Extract representative colors for every image that matches template"""
-
+    def update_metadata(self):
         # Load all images into memory
-        raster_dictionary = image_utilities.load_directory(self.default_pack)
-        print("Loaded defaults.")
+        raster_dictionary = metadata_utilities.load_directory(self.default_pack)
+        print("Loaded default images.")
 
-        # Find templates from loaded images
-        image_graph = image_utilities.load_graph(self.home + '\\image_graph.json')
-        image_graph = image_utilities.template_extract(raster_dictionary, threshold=0, network=image_graph)
-        image_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
+        # Group images together/organize into graph
+        image_graph = metadata_utilities.load_graph(self.home + '\\image_graph.json')
+        image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0, network=image_graph)
+        metadata_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
         print("Updated image graph.")
 
+        # Create informational json files for each file in default pack
+        metadata_utilities.file_metadata(self.output_path, self.template_directory, image_graph, raster_dictionary)
+        print("Created JSON metadata files.")
+
+
+    def synthesize(self):
+        """Extract representative colors for every image that matches template"""
+
         # Update template directory
-        template_paths = image_utilities.get_templates(image_graph)
+        template_paths = metadata_utilities.connectivity_sort(image_graph)
+
+
         image_utilities.prepare_templates(
             self.default_pack, self.resource_pack, template_paths, self.template_directory_autogen)
         print("Wrote additions to templates.")
 
         key_dict = image_utilities.template_reader(template_paths, image_graph)
-
-        # Create data mappings for all target files
-        image_utilities.build_metadata_tree(
-            self.diff_pack, self.metadata_pack, self.template_directory_autogen, key_dict, 5)
 
         # Converts json files to images with templates
         image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
@@ -89,4 +93,4 @@ synthesizer = MinecraftSynthesizer(r"./config.json")
 
 # synthesizer.create_default()
 # synthesizer.create_diff()
-synthesizer.image_synthesis()
+synthesizer.synthesize()

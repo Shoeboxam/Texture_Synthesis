@@ -1,13 +1,6 @@
 import os
 import json
-import colorsys
-
-import networkx
 from networkx.algorithms.components.connected import connected_components
-from networkx.readwrite import json_graph
-
-from itertools import combinations
-import operator
 
 from shutil import copy
 
@@ -15,76 +8,6 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
-
-
-def load_graph(path):
-    try:
-        json_data = open(path, 'r')
-    except FileNotFoundError:
-        return None
-    return json_graph.node_link_graph(eval(json_data.read()))
-
-
-def save_graph(path, graph):
-    json_file = open(path, 'w')
-    json_file.write(str(json_graph.node_link_data(graph)))
-
-
-def load_directory(target):
-    raster_dict = {}
-    for root, folders, files in os.walk(target):
-        for current_file in files:
-            full_path = root + "\\" + current_file
-            candidate = Raster.from_path(full_path, 'RGBA')
-            raster_dict[full_path.replace(target, "")] = candidate
-
-    return raster_dict
-
-
-def get_templates(network, threshold=1):
-    """Returns most connected node of each bunch"""
-
-    template_list = []
-    for bunch in connected_components(network):
-        degree_vec = np.vectorize(network.degree)
-
-        node_rankings = zip(bunch, degree_vec(bunch))
-        template, rank = max(node_rankings, key=operator.itemgetter(1))
-
-        if rank >= threshold:
-            template_list.append(template)
-
-    return template_list
-
-
-def template_extract(raster_dict, threshold=0, network=None):
-
-    if network is None:
-        network = networkx.Graph()
-
-    new_elements = set(raster_dict.keys()) - set(network.nodes())
-    network.add_nodes_from(new_elements)
-
-    def center(nodes):
-        bunch = {}
-        for point in nodes:
-            bunch[point] = network.degree(point)
-        return max(bunch.items(), key=operator.itemgetter(1))[0]
-
-    for group_outer, group_inner in combinations(connected_components(network), 2):
-        correlation = analyze.correlate(raster_dict[center(group_outer)], raster_dict[center(group_inner)])
-
-        if correlation > threshold:
-            # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
-            network.add_edge(group_inner[0], group_outer[0], weight=correlation)
-
-    # for group in connected_components(network):
-    #     if len(group) > 1:
-    #         for node in group:
-    #             print(node)
-    #         print(" ")
-
-    return network
 
 
 def prepare_templates(default_pack, resource_pack, path_list, template_directory):
@@ -100,7 +23,7 @@ def prepare_templates(default_pack, resource_pack, path_list, template_directory
 
 
 def template_reader(template_paths, image_graph):
-    '''Uses the image graph to create a dict of targets'''
+    """Uses the image graph to create a dict of targets"""
     split_vec = np.vectorize(os.path.split)
     image_keys_list = zip(np.array(split_vec(template_paths))[:, 1], connected_components(image_graph))
 
@@ -113,75 +36,21 @@ def template_reader(template_paths, image_graph):
     return image_keys
 
 
-def build_metadata_tree(analysis_directory, output_directory, template_directory, keys, sections):
-    """Save representative data to json files in meta pack"""
+def best_match(graph, resource_pack):
+    template_listing = []
 
-    for key, template_name in keys.items():
-        # print(key, template_name)
+    def best_existing(bunch_examine):
+        for node in bunch_examine:
+            if os.path.exists(resource_pack + '\\' + node):
+                return node
+        return None
 
-        output_path = os.path.split(output_directory + key)[0]
-        img = Raster.from_path(analysis_directory + key, 'RGBA')
+    for bunch in graph:
+        match = best_existing(bunch)
+        if match is not None:
+            template_listing.append(match)
 
-        layer_map = analyze.cluster(img, 4)
-        image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(img, layer_map))
-
-        segment_metalist = []
-
-        template_components = []
-        template_path = template_directory + '\\' + template_name
-        for image_name in os.listdir(template_path):
-            template_components.append(Raster.from_path(template_path + '\\' + image_name))
-
-        for segment, template_segment in image_clusters, template_components:
-            segment_metalist.append(analyze_image(segment, template_segment, sections))
-
-        meta_dict = {
-            'segment_dicts': json.dumps(segment_metalist),
-            'cluster_map': guide
-        }
-
-        # Create folder structure
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
-        # Save json file
-        with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
-            json.dump(meta_dict, output_file)
-
-
-def analyze_image(image, template, granularity):
-    equivalent = False
-    if np.array_equal(image.get_opaque(), template.get_opaque()):
-        equivalent = True
-
-    colors = analyze.color_extract(image, granularity)[:, 3]
-
-    hues = []
-    sats = []
-    vals = []
-
-    for color in colors:
-        r, g, b = color
-        h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        hues.append(h)
-        sats.append(s)
-        vals.append(v)
-
-    hues = math_utilities.circular_sort(hues)
-    sats = sorted(sats)[::-1]
-    vals = sorted(vals)
-
-    data_variance = analyze.variance(image, 'V')
-    lightness = analyze.mean(image, 'V')
-
-    return {
-        'template': template.name,
-        'apply': equivalent,
-        'hues': hues,
-        'sats': sats,
-        'vals': vals,
-        'lightness': lightness,
-        'variance': data_variance}
+    return template_listing
 
 
 def list_templates(template_path):
