@@ -85,7 +85,7 @@ def network_images(raster_dict, threshold=0, network=None):
                 name = node.name
 
         if name is None:
-            name = max(np.vectorize(node_strength)(bunch)).name
+            name = max(np.vectorize(node_strength)(bunch))
 
         for node in bunch:
             network[node]['name'] = name
@@ -100,42 +100,73 @@ def network_images(raster_dict, threshold=0, network=None):
 
 
 def template_metadata(template_directory, image_graph, raster_dict, sections=10):
-    keys = {}
+    """Generate spectral cluster maps for the templates"""
+
     for bunch in connected_components(image_graph):
-        for node in bunch:
-            keys[node] = (node.name, raster_dict[node])
-            layer_map = analyze.cluster(raster_dict[node], 10)
-            image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(raster_dict[node], layer_map))
-            
 
-    return keys
+        template_name = os.path.split(bunch[0].name)[1]
+        template_image = raster_dict[bunch[0].name]
 
+        # Clustering algorithm
+        layer_map = analyze.cluster(template_image, sections)
+        image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(template_image, layer_map))
 
-def file_metadata(output_directory, template_directory, keys, sections=10):
-    """Save representative data to json files in meta pack"""
-
-    for key, (template_name, default_image) in keys.items():
-        # print(key, template_name)
-
-        output_path = os.path.split(output_directory + key)[0]
-
-        layer_map = analyze.cluster(default_image, 4)
-        image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(default_image, layer_map))
-
-        template_path = template_directory + '\\' + template_name
-
-        template_components = []
-        for image_name in os.listdir(template_path):
-            template_components.append(Raster.from_path(template_path + '\\' + image_name))
-
+        # Analyze each cluster, save to list of dicts
         segment_metalist = []
-        for segment, template_segment in image_clusters, template_components:
-            segment_metalist.append(analyze_image(segment, template_segment, sections))
+        for segment, template_segment in image_clusters:
+            segment_metalist.append(analyze_image(segment, sections))
 
         meta_dict = {
+            'group_name': template_name,
             'segment_dicts': json.dumps(segment_metalist),
             'cluster_map': guide
         }
+
+        # Create folder structure
+        if not os.path.exists(template_directory):
+            os.makedirs(template_directory)
+
+        # Save json file
+        with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
+            json.dump(meta_dict, output_file)
+
+
+def file_metadata(output_directory, template_directory, raster_dict, image_graph, sections=10):
+    """Save representative data to json files in meta pack"""
+
+    template_metadata = {}
+    for json_filename in os.listdir(template_directory + '\\meta\\'):
+        with open(template_directory + '\\meta\\' + json_filename, 'r') as json_file:
+            json_data = json.load(json_file)
+            template_metadata[json_data['group_name']] = json_data
+
+    # Retrieve the relevant info for every texture
+    keys = {}
+    for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
+        for node in bunch:
+            keys[node] = node.name, raster_dict[node]
+
+    # Iterate through each file that is part of the key
+    for key, (template_name, default_image) in keys.items():
+
+        # Load corresponding cluster map
+        with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
+            layer_map = json.load(config)['cluster_map']
+        # Use corresponding cluster map
+        image_clusters = filter.layer_decomposite(default_image, layer_map)
+        templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
+
+        # Analyze each cluster
+        segment_metalist = []
+        for segment, template_segment in image_clusters, templ_clusters:
+            segment_metalist.append(analyze_image(segment, template_segment, sections))
+
+        meta_dict = {
+            'group_name': template_name,
+            'segment_dicts': json.dumps(segment_metalist)
+        }
+
+        output_path = os.path.split(output_directory + key)[0]
 
         # Create folder structure
         if not os.path.exists(output_path):
@@ -146,10 +177,7 @@ def file_metadata(output_directory, template_directory, keys, sections=10):
             json.dump(meta_dict, output_file)
 
 
-def analyze_image(image, template, granularity):
-    equivalent = False
-    if np.array_equal(image.get_opaque(), template.get_opaque()):
-        equivalent = True
+def analyze_image(image, template=None, granularity=10):
 
     colors = analyze.color_extract(image, granularity)[:, 3]
 
@@ -171,11 +199,18 @@ def analyze_image(image, template, granularity):
     data_variance = analyze.variance(image, 'V')
     lightness = analyze.mean(image, 'V')
 
-    return {
-        'template': template.name,
-        'apply': equivalent,
+    data = {
         'hues': hues,
         'sats': sats,
         'vals': vals,
         'lightness': lightness,
         'variance': data_variance}
+
+    # Equivalence flag
+    equivalent = False
+    if template is not None:
+        if np.array_equal(image.get_opaque(), template.get_opaque()):
+            equivalent = True
+    data['equivalent'] = equivalent
+
+    return data
