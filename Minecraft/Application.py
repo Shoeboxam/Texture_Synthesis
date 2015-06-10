@@ -5,16 +5,6 @@ from shutil import rmtree
 from os.path import normpath, expanduser
 import os
 
-import warnings
-
-def fxn():
-    warnings.warn("RuntimeWarning", RuntimeWarning)
-
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    fxn()
-
-
 class MinecraftSynthesizer:
 
     def __init__(self, config_path):
@@ -74,16 +64,17 @@ class MinecraftSynthesizer:
         print("Loaded default images.")
 
         # Group images together/organize into graph
-        # image_graph = metadata_utilities.load_graph(self.home + '\\image_graph.json')
-        image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0)
-        metadata_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
+        image_graph = metadata_utilities.load_graph(self.home + '\\image_graph.json')
+        # image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0)
+        # metadata_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
         print("Updated image graph.")
 
         template_metadirectory = self.template_directory_autogen + '\\meta\\'
         if not os.path.exists(template_metadirectory):
             os.makedirs(template_metadirectory)
 
-        # Create informational json files for each file in default pack
+        # Create informational json files for templates and files
+        metadata_utilities.template_metadata(self.template_directory_autogen, image_graph, raster_dictionary)
         metadata_utilities.file_metadata(self.output_path, self.template_directory_autogen, image_graph, raster_dictionary)
         print("Created JSON metadata files.")
 

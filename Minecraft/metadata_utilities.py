@@ -81,10 +81,10 @@ def network_images(raster_dict, threshold=0, network=None):
 
         # Name bunch from greatest node
         greatest_node = None
+        name = None
         for node in bunch:
 
             node_strength = 0
-            name = None
             for edge in list(bunch.edge[node].values()):
                 node_strength += edge['weight']
 
@@ -115,18 +115,23 @@ def network_images(raster_dict, threshold=0, network=None):
 def template_metadata(template_directory, image_graph, raster_dict, sections=10):
     """Generate spectral cluster maps for the templates"""
 
-    for bunch in connected_components(image_graph):
+    for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
 
-        template_name = os.path.split(bunch[0].name)[1]
-        template_image = raster_dict[bunch[0].name]
+        template_name = os.path.split(image_graph.node[bunch[0]]['group_name'])[1]
+        template_image = raster_dict[image_graph.node[bunch[0]]['group_name']]
 
         # Clustering algorithm
+        template_image.get_image().show()
         layer_map = analyze.cluster(template_image, sections)
-        image_clusters, guide = filter.merge_similar(*filter.layer_decomposite(template_image, layer_map))
+        image_clusters = filter.layer_decomposite(template_image, layer_map)
+        image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
+        for cluster in image_clusters:
+            cluster.get_image().show()
+        print(guide)
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
-        for segment, template_segment in image_clusters:
+        for segment in image_clusters:
             segment_metalist.append(analyze_image(segment, sections))
 
         meta_dict = {
@@ -153,12 +158,12 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
             json_data = json.load(json_file)
             template_data[json_data['group_name']] = json_data
 
-    print(image_graph)
     # Retrieve the relevant info for every texture
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
-            keys[node] = image_graph[node]['group_name'], raster_dict[node]
+            print(image_graph[node])
+            keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
 
     # Iterate through each file that is part of the key
     for key, (template_name, default_image) in keys.items():

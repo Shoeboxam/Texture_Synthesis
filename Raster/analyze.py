@@ -6,6 +6,7 @@ from sklearn.feature_extraction import image
 from Raster import math_utilities as math
 
 from numpy import exp
+import numpy as np
 
 
 def extrema(raster, channel):
@@ -30,6 +31,8 @@ def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 
     # Calculate X number of representative colors
+    print(raster.colors)
+    raster.get_image().show()
     kmeans_object = KMeans(n_clusters=color_count, random_state=0)
     representative_colors = kmeans_object.fit(raster.get_opaque()).cluster_centers_
     return representative_colors
@@ -47,9 +50,8 @@ def correlate(a, b):
 def cluster(raster, pieces):
     graph = image.img_to_graph(raster.get_tiered())
 
-    beta = 5
+    beta = .1
     graph.data = exp(-beta * graph.data / raster.get_opaque().std())
-
     labels = spectral_clustering(graph, n_clusters=pieces,
                                  assign_labels='discretize',
                                  random_state=1)

@@ -4,6 +4,8 @@ import colorsys
 
 import os
 
+np.set_printoptions(precision=2, suppress=True, threshold=np.nan)
+
 
 bit_depth = {'1': 1, 'L': 8, 'LA': 16, 'P': 8, 'RGB': 8, 'RGBA': 8, 'CMYK': 8, 'YCbCr': 8, 'I': 32, 'F': 32}
 channel_depth = {'1': 1, 'L': 1, 'LA': 2, 'P': 1, 'RGB': 3, 'RGBA': 4, 'CMYK': 4, 'YCbCr': 3, 'I': 1, 'F': 1}
@@ -116,7 +118,9 @@ class Raster(object):
         return np.array(solid)
 
     def get_tiered(self):
-        return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 3))
+        print(np.shape(self.with_alpha()))
+        print(self.shape)
+        return np.reshape(self.with_alpha(), (self._shape[1], self._shape[0], 4))
 
     @classmethod
     def from_array(cls, array, mode):

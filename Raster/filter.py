@@ -146,9 +146,7 @@ def merge_similar(raster_list, layer_map=None):
     # Combine all pairs with shared elements using network graphs
     def to_graph(node_collection):
         model = networkx.Graph()
-        print(node_collection)
         for nodes in node_collection:
-            print(nodes)
             model.add_nodes_from(nodes)
             model.add_edges_from(get_edges(nodes))
         return model
@@ -174,7 +172,7 @@ def merge_similar(raster_list, layer_map=None):
 
         if layer_map is not None:
             for target in indice_set[1:]:
-                layer_map = np.place(layer_map, np.equal(layer_map, target), indice_set[0])
+                np.place(layer_map, np.equal(layer_map, target), indice_set[0])
 
     if layer_map is not None:
         return clustered_combined_images, layer_map
@@ -194,8 +192,7 @@ def composite(raster_list):
     mask = []
 
     # Take transpose of pixel layers to produce a list of corresponding pixels
-    for pixel_profile in np.array(zip(*pixel_layers)):
-
+    for pixel_profile in np.array(pixel_layers).T:
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
 
