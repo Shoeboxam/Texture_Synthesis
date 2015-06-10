@@ -1,13 +1,13 @@
 from git import Repo, GitCommandError
 
-from scrapy import Spider, Item, Field
+# from scrapy import Spider, Item, Field
 
 def clone_repo(url, target):
     try:
         Repo.clone_from(url, target)
     except GitCommandError:
         print("Repository already exists, skipping clone")
-
+'''
 # Going to wait on this until I get some sort of ok from Curse...
 class Project(Item):
     url = Field()
@@ -28,3 +28,4 @@ def curseforge_mod_scrape(page):
     pass
     # li.project-list-item:nth-child(1) > div:nth-child(2) > div:nth-child(2) > a:nth-child(1)
     # li.project-list-item:nth-child(2) > div:nth-child(2) > div:nth-child(2) > a:nth-child(1)
+'''

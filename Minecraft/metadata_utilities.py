@@ -3,7 +3,7 @@ import json
 import colorsys
 
 import networkx
-from networkx.algorithms.components.connected import connected_components
+from networkx.algorithms.components.connected import connected_components, connected_component_subgraphs
 from networkx.readwrite import json_graph
 
 from itertools import combinations
@@ -76,19 +76,32 @@ def network_images(raster_dict, threshold=0, network=None):
             network.add_edge(center(group_inner), center(group_outer), weight=correlation)
 
     # Name each bunch
-    for bunch in connected_components(network):
-        max(bunch, key=node_strength)
+    for bunch in [i for i in connected_component_subgraphs(network) if len(i) > 1]:
+        max_node_strength = 0
 
-        name = None
+        # Name bunch from greatest node
+        greatest_node = None
         for node in bunch:
-            if node.name is not None:
-                name = node.name
+
+            node_strength = 0
+            name = None
+            for edge in list(bunch.edge[node].values()):
+                node_strength += edge['weight']
+
+            if node_strength > max_node_strength:
+                max_node_strength = node_strength
+                greatest_node = node
+
+            # Collect names while determining greatest node
+            if 'group_name' in network.node[node]:
+                name = network.node[node]['group_name']
 
         if name is None:
-            name = max(np.vectorize(node_strength)(bunch))
+            name = greatest_node
 
+        # Apply new name to all nodes in bunch
         for node in bunch:
-            network[node]['name'] = name
+            network.node[node]['group_name'] = name
 
     # for group in connected_components(network):
     #     if len(group) > 1:
@@ -131,20 +144,21 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=10)
             json.dump(meta_dict, output_file)
 
 
-def file_metadata(output_directory, template_directory, raster_dict, image_graph, sections=10):
+def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=10):
     """Save representative data to json files in meta pack"""
 
-    template_metadata = {}
+    template_data = {}
     for json_filename in os.listdir(template_directory + '\\meta\\'):
         with open(template_directory + '\\meta\\' + json_filename, 'r') as json_file:
             json_data = json.load(json_file)
-            template_metadata[json_data['group_name']] = json_data
+            template_data[json_data['group_name']] = json_data
 
+    print(image_graph)
     # Retrieve the relevant info for every texture
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
-            keys[node] = node.name, raster_dict[node]
+            keys[node] = image_graph[node]['group_name'], raster_dict[node]
 
     # Iterate through each file that is part of the key
     for key, (template_name, default_image) in keys.items():

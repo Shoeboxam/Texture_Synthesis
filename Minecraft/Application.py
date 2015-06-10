@@ -3,6 +3,16 @@ from Minecraft import file_utilities, image_utilities, web_utilities, metadata_u
 import json
 from shutil import rmtree
 from os.path import normpath, expanduser
+import os
+
+import warnings
+
+def fxn():
+    warnings.warn("RuntimeWarning", RuntimeWarning)
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    fxn()
 
 
 class MinecraftSynthesizer:
@@ -21,7 +31,8 @@ class MinecraftSynthesizer:
         self.template_directory_autogen = self.home + '\\templates_autogen\\'
 
         self.diff_pack = self.home + '\\default_diff\\'
-        self.metadata_pack = self.home + '\\default_metadata\\'
+        self.file_metadata = self.home + '\\metadata\mappings\\'
+        self.template_metadata = self.home + '\\metadata\templates\\'
 
         self.output_path = self.home + '\\synthesized_resources\\'
         self.key_repository = self.home + '\\key_repository\\'
@@ -63,13 +74,17 @@ class MinecraftSynthesizer:
         print("Loaded default images.")
 
         # Group images together/organize into graph
-        image_graph = metadata_utilities.load_graph(self.home + '\\image_graph.json')
-        image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0, network=image_graph)
+        # image_graph = metadata_utilities.load_graph(self.home + '\\image_graph.json')
+        image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0)
         metadata_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
         print("Updated image graph.")
 
+        template_metadirectory = self.template_directory_autogen + '\\meta\\'
+        if not os.path.exists(template_metadirectory):
+            os.makedirs(template_metadirectory)
+
         # Create informational json files for each file in default pack
-        metadata_utilities.file_metadata(self.output_path, self.template_directory, image_graph, raster_dictionary)
+        metadata_utilities.file_metadata(self.output_path, self.template_directory_autogen, image_graph, raster_dictionary)
         print("Created JSON metadata files.")
 
 
@@ -87,10 +102,10 @@ class MinecraftSynthesizer:
         key_dict = image_utilities.template_reader(template_paths, image_graph)
 
         # Converts json files to images with templates
-        image_utilities.populate_images(self.template_directory, self.metadata_pack, self.output_path)
+        image_utilities.populate_images(self.template_directory, self.file_metadata, self.output_path)
 
 synthesizer = MinecraftSynthesizer(r"./config.json")
 
 # synthesizer.create_default()
 # synthesizer.create_diff()
-synthesizer.synthesize()
+synthesizer.update_metadata()
