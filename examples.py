@@ -65,3 +65,4 @@ def templater():
     image_utilities.save_graph(r"C:\Users\mike_000\Desktop\graph_image.json", image_graph)
 
     print(image_utilities.get_templates(image_graph))
+

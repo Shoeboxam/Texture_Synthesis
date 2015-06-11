@@ -33,8 +33,10 @@ def load_directory(target):
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
-            candidate = Raster.from_path(full_path, 'RGBA')
-            raster_dict[full_path.replace(target, "")] = candidate
+
+            if full_path.endswith('.png'):
+                candidate = Raster.from_path(full_path, 'RGBA')
+                raster_dict[full_path.replace(target, "")] = candidate
 
     return raster_dict
 
@@ -112,32 +114,37 @@ def network_images(raster_dict, threshold=0, network=None):
     return network
 
 
-def template_metadata(template_directory, image_graph, raster_dict, sections=10):
+def template_metadata(template_directory, image_graph, raster_dict, sections=3):
     """Generate spectral cluster maps for the templates"""
 
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
+        if raster_dict[bunch[0]].shape != (16, 16):
+            continue
 
         template_name = os.path.split(image_graph.node[bunch[0]]['group_name'])[1]
         template_image = raster_dict[image_graph.node[bunch[0]]['group_name']]
 
+        # print(image_graph.node[bunch[0]]['group_name'])
+
         # Clustering algorithm
-        template_image.get_image().show()
         layer_map = analyze.cluster(template_image, sections)
         image_clusters = filter.layer_decomposite(template_image, layer_map)
+        
+        # for index, cluster in enumerate(image_clusters):
+        #     cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
+
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
-        for cluster in image_clusters:
-            cluster.get_image().show()
-        print(guide)
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
         for segment in image_clusters:
-            segment_metalist.append(analyze_image(segment, sections))
+            print(type(segment))
+            segment_metalist.append(analyze_image(segment, granularity=sections))
 
         meta_dict = {
             'group_name': template_name,
             'segment_dicts': json.dumps(segment_metalist),
-            'cluster_map': guide
+            'cluster_map': str(list(guide))
         }
 
         # Create folder structure
@@ -149,7 +156,7 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=10)
             json.dump(meta_dict, output_file)
 
 
-def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=10):
+def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
     """Save representative data to json files in meta pack"""
 
     template_data = {}
@@ -162,7 +169,6 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
-            print(image_graph[node])
             keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
 
     # Iterate through each file that is part of the key
@@ -196,16 +202,17 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
             json.dump(meta_dict, output_file)
 
 
-def analyze_image(image, template=None, granularity=10):
+def analyze_image(image, template=None, granularity=3):
+    colors = analyze.color_extract(image, granularity)
 
-    colors = analyze.color_extract(image, granularity)[:, 3]
+    print(colors)
 
     hues = []
     sats = []
     vals = []
 
     for color in colors:
-        r, g, b = color
+        r, g, b, a = color
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
         hues.append(h)
         sats.append(s)

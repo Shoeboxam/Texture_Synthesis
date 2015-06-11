@@ -126,9 +126,8 @@ def merge_similar(raster_list, layer_map=None):
     def euclidean_distance(point_1, point_2=(0, 0, 0)):
         difference = point_2 - point_1
         return sqrt(np.dot(difference, difference))
-
     image_whole = composite(raster_list)
-
+    image_whole.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + image_whole.name)
     # Graph all pixels in 3D, fit a box to the data, then take the distance from the two furthest corners
     # Used to represent the magnitude, or scale of data.
     magnitude = euclidean_distance(np.amin(image_whole.get_opaque(), axis=0), np.amax(image_whole.get_opaque(), axis=0))
@@ -189,10 +188,11 @@ def composite(raster_list):
         pixel_layers.append(img.with_alpha())
 
     pixel_accumulator = []
-    mask = []
+    mask_construct = []
 
     # Take transpose of pixel layers to produce a list of corresponding pixels
-    for pixel_profile in np.array(pixel_layers).T:
+    for pixel_profile in np.array(list(zip(*pixel_layers))):
+
         # Opacity is the sum of alpha channels
         opacity = sum(pixel_profile[:, 3])
 
@@ -204,15 +204,17 @@ def composite(raster_list):
             weights = pixel_profile[:, 3]
 
             # Condense profile down into one representative pixel
-            pixel.append(circular_mean(pixel_profile[:, 0], weights))  # R
-            pixel.append(linear_mean(pixel_profile[:, 1], weights))    # G
-            pixel.append(linear_mean(pixel_profile[:, 2], weights))    # B
-            mask.append(clamp(opacity))                                # A
+            for channel_index, channel_id in enumerate(raster_list[0].mode):
+                if channel_id == 'H':
+                    pixel.append(circular_mean(pixel_profile[:, channel_index], weights))
+                else:
+                    pixel.append(linear_mean(pixel_profile[:, channel_index], weights))
+            mask_construct.append(float(clamp(opacity)))
 
             pixel_accumulator.append(pixel)
 
         else:
-            pixel_accumulator.append([0, 0, 0])
-            mask.append(0)
+            pixel_accumulator.append([0., 0., 0.])
+            mask_construct.append(0.)
 
-    return Raster.Raster(pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask)
+    return Raster.Raster(pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)

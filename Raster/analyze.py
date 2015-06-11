@@ -31,8 +31,6 @@ def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 
     # Calculate X number of representative colors
-    print(raster.colors)
-    raster.get_image().show()
     kmeans_object = KMeans(n_clusters=color_count, random_state=0)
     representative_colors = kmeans_object.fit(raster.get_opaque()).cluster_centers_
     return representative_colors
