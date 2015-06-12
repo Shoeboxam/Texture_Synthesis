@@ -7,6 +7,9 @@ from Raster import math_utilities as math
 
 from numpy import exp
 import numpy as np
+from numpy.linalg.linalg import LinAlgError
+
+from scipy.stats import itemfreq
 
 
 def extrema(raster, channel):
@@ -30,10 +33,21 @@ def variance(raster, channel):
 def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
 
+    representative_colors = []
+
     # Calculate X number of representative colors
-    kmeans_object = KMeans(n_clusters=color_count, random_state=0)
-    representative_colors = kmeans_object.fit(raster.get_opaque()).cluster_centers_
-    return representative_colors
+
+    success = False
+
+    while not success:
+        try:
+            kmeans_object = KMeans(n_clusters=color_count, random_state=0)
+            representative_colors = kmeans_object.fit(raster.get_opaque()).cluster_centers_
+            success = True
+        except ValueError:
+            color_count -= 1
+
+    return np.vectorize(math.clamp)(representative_colors)
 
 
 def correlate(a, b):
@@ -46,12 +60,30 @@ def correlate(a, b):
 
 
 def cluster(raster, pieces):
+    raster.to_rgb()
     graph = image.img_to_graph(raster.get_tiered())
 
-    beta = .1
+    beta = 5
     graph.data = exp(-beta * graph.data / raster.get_opaque().std())
-    labels = spectral_clustering(graph, n_clusters=pieces,
-                                 assign_labels='discretize',
-                                 random_state=1)
+
+    labels = []
+    success = False
+
+    while not success:
+        try:
+            labels = spectral_clustering(graph, n_clusters=pieces, assign_labels='discretize', random_state=1)
+            success = True
+        except LinAlgError:
+            pieces -=1
+
+            # If clustering is non-convergent, return single cluster
+            if pieces == 0:
+                return np.zeros(np.product(raster.shape), 1)
+
+    # Filter out single pixel clusters
+    frequencies = itemfreq(labels)
+    for item, freq in frequencies[np.where(frequencies[:,1] == 1)]:
+        # Item represents cluster ID that needs to be combined
+        pass
 
     return labels.reshape(raster.with_alpha().shape)[:, 0]

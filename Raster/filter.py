@@ -126,8 +126,9 @@ def merge_similar(raster_list, layer_map=None):
     def euclidean_distance(point_1, point_2=(0, 0, 0)):
         difference = point_2 - point_1
         return sqrt(np.dot(difference, difference))
+
     image_whole = composite(raster_list)
-    image_whole.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + image_whole.name)
+
     # Graph all pixels in 3D, fit a box to the data, then take the distance from the two furthest corners
     # Used to represent the magnitude, or scale of data.
     magnitude = euclidean_distance(np.amin(image_whole.get_opaque(), axis=0), np.amax(image_whole.get_opaque(), axis=0))
@@ -170,9 +171,15 @@ def merge_similar(raster_list, layer_map=None):
         clustered_combined_images.append(composite(np.array(raster_list)[indice_set]))
 
         if layer_map is not None:
+            # Merge grouped layers
             for target in indice_set[1:]:
                 np.place(layer_map, np.equal(layer_map, target), indice_set[0])
 
+            # Relabel to increment from zero
+            for index, label in enumerate(np.unique(layer_map)):
+                np.place(layer_map, np.equal(layer_map, label), index)
+
+    print(len(clustered_combined_images))
     if layer_map is not None:
         return clustered_combined_images, layer_map
 

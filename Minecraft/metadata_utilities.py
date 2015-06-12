@@ -67,6 +67,11 @@ def network_images(raster_dict, threshold=0, network=None):
     def center(nodes):
         bunch_build = {}
         for point in nodes:
+
+            # Quick return in case template already defined
+            if 'group_name' in network.node[point]:
+                return point
+
             bunch_build[point] = network.degree(point)
         return max(bunch_build.items(), key=operator.itemgetter(1))[0]
 
@@ -114,11 +119,12 @@ def network_images(raster_dict, threshold=0, network=None):
     return network
 
 
-def template_metadata(template_directory, image_graph, raster_dict, sections=3):
+def template_metadata(template_directory, image_graph, raster_dict, sections=8):
     """Generate spectral cluster maps for the templates"""
 
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         if raster_dict[bunch[0]].shape != (16, 16):
+            # TODO: Perfect place to tie in GUI generator
             continue
 
         template_name = os.path.split(image_graph.node[bunch[0]]['group_name'])[1]
@@ -126,14 +132,16 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=3):
 
         # print(image_graph.node[bunch[0]]['group_name'])
 
+        template_image.to_rgb()
         # Clustering algorithm
         layer_map = analyze.cluster(template_image, sections)
         image_clusters = filter.layer_decomposite(template_image, layer_map)
         
-        # for index, cluster in enumerate(image_clusters):
-        #     cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
+        for index, cluster in enumerate(image_clusters):
+            cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
+        print(guide)
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
@@ -202,7 +210,7 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
             json.dump(meta_dict, output_file)
 
 
-def analyze_image(image, template=None, granularity=3):
+def analyze_image(image, template=None, granularity=10):
     colors = analyze.color_extract(image, granularity)
 
     print(colors)
