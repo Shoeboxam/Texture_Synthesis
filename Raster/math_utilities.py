@@ -1,9 +1,9 @@
 from math import cos, sin, atan, pi
 import numpy as np
-
+from math import isnan
 
 def clamp(value, lower=0., upper=1.):
-    if value is None:
+    if isnan(value):
         return 1
     return max(min(value, upper), lower)
 

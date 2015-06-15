@@ -16,6 +16,8 @@ import numpy as np
 from multiprocessing import Process, Queue, cpu_count
 import time
 
+import ast
+
 
 def load_graph(path):
     try:
@@ -166,9 +168,10 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
 
         # Load corresponding cluster map
         try:
-            with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
-                layer_map = json.load(config)['cluster_map']
+            with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
+                layer_map = ast.literal_eval(json.load(config)['cluster_map'])
         except FileNotFoundError:
+            print(template_directory + "\\" + os.path.split(template_name)[1] + ".json")
             continue
         # Use corresponding cluster map
         image_clusters = filter.layer_decomposite(default_image, layer_map)
@@ -176,12 +179,12 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
 
         # Analyze each cluster
         segment_metalist = []
-        for segment, template_segment in image_clusters, templ_clusters:
+        for segment, template_segment in zip(image_clusters, templ_clusters):
             segment_metalist.append(analyze_image(segment, template_segment, sections))
 
         meta_dict = {
             'group_name': template_name,
-            'segment_dicts': json.dumps(segment_metalist)
+            'segment_dicts': segment_metalist
         }
 
         output_path = os.path.split(output_directory + key)[0]
@@ -223,11 +226,10 @@ def template_process(template_queue, template_directory):
         segment_metalist = []
         for segment in image_clusters:
             segment_metalist.append(analyze_image(segment, granularity=sections))
-
         meta_dict = {
             'group_name': template_name,
             'segment_dicts': segment_metalist,
-            'cluster_map': str(list(guide))
+            'cluster_map': json.dumps(guide.tolist())
         }
 
         # Create folder structure

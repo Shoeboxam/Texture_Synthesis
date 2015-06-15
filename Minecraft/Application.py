@@ -74,8 +74,8 @@ class MinecraftSynthesizer:
             os.makedirs(template_metadirectory)
 
         # Create informational json files for templates and files
-        metadata_utilities.template_metadata(self.template_directory_autogen, image_graph, raster_dictionary)
-        metadata_utilities.file_metadata(self.output_path, self.template_directory_autogen, image_graph, raster_dictionary)
+        # metadata_utilities.template_metadata(self.template_directory_autogen, image_graph, raster_dictionary)
+        metadata_utilities.file_metadata(self.file_metadata, self.template_directory_autogen, image_graph, raster_dictionary)
         print("Created JSON metadata files.")
 
 
