@@ -13,7 +13,7 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
-
+from multiprocessing import Process, Queue, cpu_count
 
 def load_graph(path):
     try:
@@ -122,16 +122,71 @@ def network_images(raster_dict, threshold=0, network=None):
 def template_metadata(template_directory, image_graph, raster_dict):
     """Generate spectral cluster maps for the templates"""
 
+    template_queue = Queue()
+
+    pool = [Process(target=template_process, args=(template_queue, template_directory)) for proc in range(cpu_count())]
+    for proc in pool:
+        proc.start()
+
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         if raster_dict[bunch[0]].shape != (16, 16):
             # TODO: Perfect place to tie in GUI generator
             continue
 
-        template_name = os.path.split(image_graph.node[bunch[0]]['group_name'])[1]
-        template_image = raster_dict[image_graph.node[bunch[0]]['group_name']]
+        template_queue.put(raster_dict[image_graph.node[bunch[0]]['group_name']])
+    for proc in pool:
+        proc.join()
 
-        # print(image_graph.node[bunch[0]]['group_name'])
+def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
+    """Save representative data to json files in meta pack"""
 
+    template_data = {}
+    for json_filename in os.listdir(template_directory + '\\meta\\'):
+        with open(template_directory + '\\meta\\' + json_filename, 'r') as json_file:
+            json_data = json.load(json_file)
+            template_data[json_data['group_name']] = json_data
+
+    # Retrieve the relevant info for every texture
+    keys = {}
+    for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
+        for node in bunch:
+            keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
+
+    # Iterate through each file that is part of the key
+    for key, (template_name, default_image) in keys.items():
+
+        # Load corresponding cluster map
+        with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
+            layer_map = json.load(config)['cluster_map']
+        # Use corresponding cluster map
+        image_clusters = filter.layer_decomposite(default_image, layer_map)
+        templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
+
+        # Analyze each cluster
+        segment_metalist = []
+        for segment, template_segment in image_clusters, templ_clusters:
+            segment_metalist.append(analyze_image(segment, template_segment, sections))
+
+        meta_dict = {
+            'group_name': template_name,
+            'segment_dicts': json.dumps(segment_metalist)
+        }
+
+        output_path = os.path.split(output_directory + key)[0]
+
+        # Create folder structure
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+        # Save json file
+        with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
+            json.dump(meta_dict, output_file, sort_keys=True, indent=2)
+
+def template_process(template_queue, template_directory):
+    while True:
+        template_image = template_queue.get()
+
+        template_name = template_image.name
         template_image.to_rgb()
         sections = int(max(analyze.variance(template_image)) * 15)
         print(template_name)
@@ -172,55 +227,8 @@ def template_metadata(template_directory, image_graph, raster_dict):
             os.makedirs(template_directory)
 
         # Save json file
-        with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
+        with open(template_directory + "\\" + template_image.name + ".json", 'w') as output_file:
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
-
-
-def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
-    """Save representative data to json files in meta pack"""
-
-    template_data = {}
-    for json_filename in os.listdir(template_directory + '\\meta\\'):
-        with open(template_directory + '\\meta\\' + json_filename, 'r') as json_file:
-            json_data = json.load(json_file)
-            template_data[json_data['group_name']] = json_data
-
-    # Retrieve the relevant info for every texture
-    keys = {}
-    for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
-        for node in bunch:
-            keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
-
-    # Iterate through each file that is part of the key
-    for key, (template_name, default_image) in keys.items():
-
-        # Load corresponding cluster map
-        with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
-            layer_map = json.load(config)['cluster_map']
-        # Use corresponding cluster map
-        image_clusters = filter.layer_decomposite(default_image, layer_map)
-        templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
-
-        # Analyze each cluster
-        segment_metalist = []
-        for segment, template_segment in image_clusters, templ_clusters:
-            segment_metalist.append(analyze_image(segment, template_segment, sections))
-
-        meta_dict = {
-            'group_name': template_name,
-            'segment_dicts': json.dumps(segment_metalist)
-        }
-
-        output_path = os.path.split(output_directory + key)[0]
-
-        # Create folder structure
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
-        # Save json file
-        with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
-            json.dump(meta_dict, output_file, sort_keys=True, indent=2)
-
 
 def analyze_image(image, template=None, granularity=10):
     colors = analyze.color_extract(image, granularity)

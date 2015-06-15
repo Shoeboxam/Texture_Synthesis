@@ -95,8 +95,10 @@ class MinecraftSynthesizer:
         # Converts json files to images with templates
         image_utilities.populate_images(self.template_directory, self.file_metadata, self.output_path)
 
-synthesizer = MinecraftSynthesizer(r"./config.json")
 
-# synthesizer.create_default()
-# synthesizer.create_diff()
-synthesizer.update_metadata()
+if __name__ == '__main__':
+    synthesizer = MinecraftSynthesizer(r"./config.json")
+
+    # synthesizer.create_default()
+    # synthesizer.create_diff()
+    synthesizer.update_metadata()
