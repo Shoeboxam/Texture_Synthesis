@@ -9,8 +9,6 @@ from numpy import exp
 import numpy as np
 from numpy.linalg.linalg import LinAlgError
 
-from scipy.stats import itemfreq
-
 
 def extrema(raster, channel):
     data = raster.channel(channel, opaque=True)
@@ -30,7 +28,7 @@ def mean(raster, channel=None):
 # RMS contrast measure
 def variance(raster, channel=None):
     if channel is None:
-        return raster.colors.T.std(axis=1) / mean(raster)
+        return np.vectorize(math.clamp)((raster.colors.T.std(axis=1) / mean(raster)))
 
     data = raster.channel(channel)
     return data.std() / mean(raster, channel)
@@ -69,10 +67,10 @@ def correlate(a, b):
 
 
 def cluster(raster, pieces):
-    raster.to_rgb()
+    raster.to_hsv()
     graph = image.img_to_graph(raster.get_tiered())
 
-    beta = 5
+    beta = 15
     graph.data = exp(-beta * graph.data / raster.get_opaque().std())
 
     labels = []
@@ -88,11 +86,5 @@ def cluster(raster, pieces):
             # If clustering is non-convergent, return single cluster
             if pieces == 0:
                 return np.zeros(np.product(raster.shape), 1)
-
-    # Filter out single pixel clusters
-    frequencies = itemfreq(labels)
-    for item, freq in frequencies[np.where(frequencies[:,1] == 1)]:
-        # Item represents cluster ID that needs to be combined
-        pass
 
     return labels.reshape(raster.with_alpha().shape)[:, 0]

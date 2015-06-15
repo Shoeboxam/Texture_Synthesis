@@ -3,6 +3,8 @@ import numpy as np
 
 
 def clamp(value, lower=0., upper=1.):
+    if value is None:
+        return 1
     return max(min(value, upper), lower)
 
 

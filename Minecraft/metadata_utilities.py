@@ -14,6 +14,8 @@ from Raster import filter, math_utilities, analyze
 
 import numpy as np
 from multiprocessing import Process, Queue, cpu_count
+import time
+
 
 def load_graph(path):
     try:
@@ -61,7 +63,7 @@ def network_images(raster_dict, threshold=0, network=None):
     if network is None:
         network = networkx.Graph()
 
-    new_elements = set(raster_dict.keys()) - set(network.nodes())
+    new_elements = set(raster_dict.keys()) - set(network.nodes)
     network.add_nodes_from(new_elements)
 
     def center(nodes):
@@ -91,12 +93,12 @@ def network_images(raster_dict, threshold=0, network=None):
         name = None
         for node in bunch:
 
-            node_strength = 0
+            strength = 0
             for edge in list(bunch.edge[node].values()):
-                node_strength += edge['weight']
+                strength += edge['weight']
 
-            if node_strength > max_node_strength:
-                max_node_strength = node_strength
+            if strength > max_node_strength:
+                max_node_strength = strength
                 greatest_node = node
 
             # Collect names while determining greatest node
@@ -124,7 +126,9 @@ def template_metadata(template_directory, image_graph, raster_dict):
 
     template_queue = Queue()
 
-    pool = [Process(target=template_process, args=(template_queue, template_directory)) for proc in range(cpu_count())]
+    pool = [Process(target=template_process, args=(template_queue, template_directory), name=str(proc))
+            for proc in range(cpu_count())]
+
     for proc in pool:
         proc.start()
 
@@ -134,8 +138,13 @@ def template_metadata(template_directory, image_graph, raster_dict):
             continue
 
         template_queue.put(raster_dict[image_graph.node[bunch[0]]['group_name']])
+
+    while not template_queue.empty():
+        time.sleep(1)
+
     for proc in pool:
-        proc.join()
+        proc.terminate()
+
 
 def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
     """Save representative data to json files in meta pack"""
@@ -156,8 +165,11 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
     for key, (template_name, default_image) in keys.items():
 
         # Load corresponding cluster map
-        with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
-            layer_map = json.load(config)['cluster_map']
+        try:
+            with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
+                layer_map = json.load(config)['cluster_map']
+        except FileNotFoundError:
+            continue
         # Use corresponding cluster map
         image_clusters = filter.layer_decomposite(default_image, layer_map)
         templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
@@ -182,18 +194,17 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
+
 def template_process(template_queue, template_directory):
     while True:
         template_image = template_queue.get()
 
         template_name = template_image.name
-        template_image.to_rgb()
-        sections = int(max(analyze.variance(template_image)) * 15)
-        print(template_name)
-        print(analyze.variance(template_image))
-        print("Sections: " + str(sections))
+        template_image.to_hsv()
 
-        layer_map = []
+        # Intuition on how many sections to split an image into
+        sections = int(max(analyze.variance(template_image)) * 50)
+
         if sections < 2:
             layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
             sections = 1
@@ -203,17 +214,14 @@ def template_process(template_queue, template_directory):
 
         image_clusters = filter.layer_decomposite(template_image, layer_map)
 
-
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
-        print(len(image_clusters))
-        print(guide)
+        print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
         for index, cluster in enumerate(image_clusters):
             cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
         for segment in image_clusters:
-            print(type(segment))
             segment_metalist.append(analyze_image(segment, granularity=sections))
 
         meta_dict = {
@@ -230,10 +238,9 @@ def template_process(template_queue, template_directory):
         with open(template_directory + "\\" + template_image.name + ".json", 'w') as output_file:
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
+
 def analyze_image(image, template=None, granularity=10):
     colors = analyze.color_extract(image, granularity)
-
-    print(colors)
 
     hues = []
     sats = []

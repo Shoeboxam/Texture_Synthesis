@@ -125,6 +125,10 @@ def merge_similar(raster_list, layer_map=None):
     # Calculates distance between two points
     def euclidean_distance(point_1, point_2=(0, 0, 0)):
         difference = point_2 - point_1
+
+        # NOTE: Shitty tweak to separate hues weight
+        difference[0] *= 1 + point_1[1]
+
         return sqrt(np.dot(difference, difference))
 
     image_whole = composite(raster_list)
@@ -140,7 +144,7 @@ def merge_similar(raster_list, layer_map=None):
     for pair in combinations(coordinates, 2):
         cluster_differentiation = euclidean_distance(pair[0][0], pair[1][0])
 
-        if cluster_differentiation < magnitude * .7 / len(raster_list):
+        if cluster_differentiation < magnitude * 1.5 / len(raster_list):
             combine_list.append((pair[0][1], pair[1][1]))
 
     # Combine all pairs with shared elements using network graphs
