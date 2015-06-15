@@ -167,21 +167,19 @@ def merge_similar(raster_list, layer_map=None):
 
     # Actual image compositing to group similar clusters
     clustered_combined_images = []
-    for indice_set in connected_components(composition_graph):
+    image_bunches = list(connected_components(composition_graph))
+
+    for indice_set in image_bunches:
         clustered_combined_images.append(composite(np.array(raster_list)[indice_set]))
 
-        if layer_map is not None:
-            # Merge grouped layers
-            for target in indice_set[1:]:
-                np.place(layer_map, np.equal(layer_map, target), indice_set[0])
-
-            # Relabel to increment from zero
-            for index, label in enumerate(np.unique(layer_map)):
-                np.place(layer_map, np.equal(layer_map, label), index)
-
-    print(len(clustered_combined_images))
     if layer_map is not None:
-        return clustered_combined_images, layer_map
+        layer_map_blank = np.zeros((np.product(raster_list[0].shape))).astype(np.int16)
+        for id, bunch in enumerate(image_bunches):
+            for layer in bunch:
+                layer_map_blank[layer_map == layer] = bunch[0]
+
+            layer_map_blank[layer_map_blank == bunch[0]] = id
+        return clustered_combined_images, layer_map_blank
 
     return clustered_combined_images
     # TODO: Filter out single pixel clusters

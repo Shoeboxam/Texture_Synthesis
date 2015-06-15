@@ -137,11 +137,13 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=8):
         layer_map = analyze.cluster(template_image, sections)
         image_clusters = filter.layer_decomposite(template_image, layer_map)
         
-        for index, cluster in enumerate(image_clusters):
-            cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
+        print(template_name)
+        print(len(image_clusters))
         print(guide)
+        for index, cluster in enumerate(image_clusters):
+            cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
@@ -151,7 +153,7 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=8):
 
         meta_dict = {
             'group_name': template_name,
-            'segment_dicts': json.dumps(segment_metalist),
+            'segment_dicts': segment_metalist,
             'cluster_map': str(list(guide))
         }
 
