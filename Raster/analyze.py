@@ -17,7 +17,10 @@ def extrema(raster, channel):
     return [min(data), max(data)]
 
 
-def mean(raster, channel):
+def mean(raster, channel=None):
+    if channel is None:
+        return np.vectorize(mean)(raster, [letter for letter in raster.mode])
+
     if channel == 'H':
         return math.circular_mean(raster.channel(channel), raster.mask)
     else:
@@ -25,9 +28,12 @@ def mean(raster, channel):
 
 
 # RMS contrast measure
-def variance(raster, channel):
+def variance(raster, channel=None):
+    if channel is None:
+        return raster.colors.T.std(axis=1) / mean(raster)
+
     data = raster.channel(channel)
-    return data.std() / math.linear_mean(data, raster.mask)
+    return data.std() / mean(raster, channel)
 
 
 def color_extract(raster, color_count):
@@ -46,6 +52,9 @@ def color_extract(raster, color_count):
             success = True
         except ValueError:
             color_count -= 1
+        except OverflowError:
+            print(color_count)
+            pass
 
     return np.vectorize(math.clamp)(representative_colors)
 

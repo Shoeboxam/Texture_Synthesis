@@ -119,7 +119,7 @@ def network_images(raster_dict, threshold=0, network=None):
     return network
 
 
-def template_metadata(template_directory, image_graph, raster_dict, sections=8):
+def template_metadata(template_directory, image_graph, raster_dict):
     """Generate spectral cluster maps for the templates"""
 
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
@@ -133,13 +133,23 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=8):
         # print(image_graph.node[bunch[0]]['group_name'])
 
         template_image.to_rgb()
-        # Clustering algorithm
-        layer_map = analyze.cluster(template_image, sections)
+        sections = int(max(analyze.variance(template_image)) * 15)
+        print(template_name)
+        print(analyze.variance(template_image))
+        print("Sections: " + str(sections))
+
+        layer_map = []
+        if sections < 2:
+            layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
+            sections = 1
+        else:
+            # Clustering algorithm
+            layer_map = analyze.cluster(template_image, sections)
+
         image_clusters = filter.layer_decomposite(template_image, layer_map)
-        
+
 
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
-        print(template_name)
         print(len(image_clusters))
         print(guide)
         for index, cluster in enumerate(image_clusters):
@@ -162,8 +172,8 @@ def template_metadata(template_directory, image_graph, raster_dict, sections=8):
             os.makedirs(template_directory)
 
         # Save json file
-        with open(template_directory + "\\meta\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
-            json.dump(meta_dict, output_file)
+        with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
+            json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 
 def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
@@ -209,7 +219,7 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
 
         # Save json file
         with open(output_path + "\\" + os.path.split(key)[1] + ".json", 'w') as output_file:
-            json.dump(meta_dict, output_file)
+            json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 
 def analyze_image(image, template=None, granularity=10):
@@ -228,9 +238,9 @@ def analyze_image(image, template=None, granularity=10):
         sats.append(s)
         vals.append(v)
 
-    hues = math_utilities.circular_sort(hues)
-    sats = sorted(sats)[::-1]
-    vals = sorted(vals)
+    hues = math_utilities.circular_sort(list(set(hues)))
+    sats = sorted(list(set(sats)))[::-1]
+    vals = sorted(list(set(vals)))
 
     data_variance = analyze.variance(image, 'V')
     lightness = analyze.mean(image, 'V')
