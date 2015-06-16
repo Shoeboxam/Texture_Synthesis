@@ -18,7 +18,7 @@ class MinecraftSynthesizer:
         self.mods_directory = self.home + "\\mods\\"
 
         self.template_directory = self.home + '\\templates\\'
-        self.template_directory_autogen = self.home + '\\templates_autogen\\'
+        self.template_directory_autogen = self.home + '\\metadata\\templates_autogen\\'
 
         self.diff_pack = self.home + '\\default_diff\\'
         self.file_metadata = self.home + '\\metadata\mappings\\'
@@ -69,12 +69,8 @@ class MinecraftSynthesizer:
         # metadata_utilities.save_graph(self.home + '\\image_graph.json', image_graph)
         print("Updated image graph.")
 
-        template_metadirectory = self.template_directory_autogen + '\\meta\\'
-        if not os.path.exists(template_metadirectory):
-            os.makedirs(template_metadirectory)
-
         # Create informational json files for templates and files
-        # metadata_utilities.template_metadata(self.template_directory_autogen, image_graph, raster_dictionary)
+        metadata_utilities.template_metadata(self.template_directory_autogen, image_graph, raster_dictionary)
         metadata_utilities.file_metadata(self.file_metadata, self.template_directory_autogen, image_graph, raster_dictionary)
         print("Created JSON metadata files.")
 

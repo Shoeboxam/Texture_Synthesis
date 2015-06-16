@@ -175,14 +175,19 @@ def merge_similar(raster_list, layer_map=None):
 
     for indice_set in image_bunches:
         clustered_combined_images.append(composite(np.array(raster_list)[indice_set]))
-
     if layer_map is not None:
         layer_map_blank = np.zeros((np.product(raster_list[0].shape))).astype(np.int16)
         for id, bunch in enumerate(image_bunches):
             for layer in bunch:
-                layer_map_blank[layer_map == layer] = bunch[0]
+                layer_map_blank[np.nonzero(layer_map == layer)] = bunch[0]
+                print('Bunch: ' + str(bunch) + '\n' +
+                      'Layer: ' + str(layer) + '\n'
+                      'Indices: ' + str(layer_map[np.nonzero(layer_map == layer)]) + '\n' +
+                      'Layer Map: ' + str(layer_map) + '\n' +
+                      'Blank Map: ' + str(layer_map_blank) + '\n\n\n\n')
 
-            layer_map_blank[layer_map_blank == bunch[0]] = id
+        for id, bunch in enumerate(np.unique(layer_map_blank)):
+            layer_map_blank[layer_map_blank == bunch] = id
         return clustered_combined_images, layer_map_blank
 
     return clustered_combined_images

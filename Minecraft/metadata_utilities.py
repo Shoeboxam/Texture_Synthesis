@@ -171,11 +171,16 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
             with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
                 layer_map = ast.literal_eval(json.load(config)['cluster_map'])
         except FileNotFoundError:
-            print(template_directory + "\\" + os.path.split(template_name)[1] + ".json")
+            print("Could not find: " + template_directory + "\\" + os.path.split(template_name)[1] + ".json")
             continue
+
         # Use corresponding cluster map
         image_clusters = filter.layer_decomposite(default_image, layer_map)
         templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
+        print(image_clusters[0].name)
+        print(templ_clusters[0].name)
+        image_clusters[0].get_image().save(r"C:\Users\mike_000\Desktop\segment.png")
+        templ_clusters[0].get_image().save(r"C:\Users\mike_000\Desktop\template.png")
 
         # Analyze each cluster
         segment_metalist = []
@@ -216,9 +221,10 @@ def template_process(template_queue, template_directory):
             layer_map = analyze.cluster(template_image, sections)
 
         image_clusters = filter.layer_decomposite(template_image, layer_map)
-
         image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
+
         print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
+
         for index, cluster in enumerate(image_clusters):
             cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
@@ -226,6 +232,7 @@ def template_process(template_queue, template_directory):
         segment_metalist = []
         for segment in image_clusters:
             segment_metalist.append(analyze_image(segment, granularity=sections))
+
         meta_dict = {
             'group_name': template_name,
             'segment_dicts': segment_metalist,
@@ -270,10 +277,15 @@ def analyze_image(image, template=None, granularity=10):
         'variance': data_variance}
 
     # Equivalence flag
-    equivalent = False
     if template is not None:
-        if np.array_equal(image.get_opaque(), template.get_opaque()):
+        equivalent = False
+
+        image.to_rgb()
+        template.to_rgb()
+
+        print(str(np.sum(image.colors - template.colors)))
+        if np.sum(image.colors - template.colors) == 0.:
             equivalent = True
-    data['equivalent'] = equivalent
+        data['equivalent'] = equivalent
 
     return data
