@@ -36,6 +36,12 @@ class MinecraftSynthesizer:
         web_utilities.clone_repo(self.config['key_repository'], self.key_repository)
         print('Key repository installed')
 
+        try:
+            os.makedirs(self.home + '\\metadata')
+        except FileExistsError:
+            pass
+
+
     def create_default(self):
         """Creates a default texture pack in mod repository format"""
 
@@ -77,6 +83,7 @@ class MinecraftSynthesizer:
         metadata_utilities.file_metadata(
             self.file_metadata, self.template_directory_autogen, image_graph, raster_dictionary)
         print("Created JSON metadata files.")
+
 
     def synthesize(self):
         """Extract representative colors for every image that matches template"""

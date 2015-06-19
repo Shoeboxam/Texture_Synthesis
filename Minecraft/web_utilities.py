@@ -24,6 +24,7 @@ def download_minecraft(version, target):
     if not os.path.exists(target + '\\assets'):
         with zipfile.ZipFile(target + '\\minecraft.jar') as file_zip:
             file_zip.extractall(target)
+            file_zip.close()
             resource_filter(target)
 
 

@@ -22,14 +22,16 @@ import ast
 def load_graph(path):
     try:
         json_data = open(path, 'r')
+        dict = json_graph.node_link_graph(eval(json_data.read()))
+        json_data.close()
     except FileNotFoundError:
-        return None
-    return json_graph.node_link_graph(eval(json_data.read()))
+        dict = networkx.Graph()
+    return dict
 
 
 def save_graph(path, graph):
-    json_file = open(path, 'w')
-    json_file.write(str(json_graph.node_link_data(graph)))
+    with open(path, 'w+') as json_file:
+        json_file.write(str(json_graph.node_link_data(graph)))
 
 
 def load_directory(target):
@@ -179,10 +181,6 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
         # Use corresponding cluster map
         image_clusters = filter.layer_decomposite(default_image, layer_map)
         templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
-        print(image_clusters[0].name)
-        print(templ_clusters[0].name)
-        image_clusters[0].get_image().save(r"C:\Users\mike_000\Desktop\segment.png")
-        templ_clusters[0].get_image().save(r"C:\Users\mike_000\Desktop\template.png")
 
         # Analyze each cluster
         segment_metalist = []
@@ -285,8 +283,10 @@ def analyze_image(image, template=None, granularity=10):
         image.to_rgb()
         template.to_rgb()
 
-        print(str(np.sum(image.colors - template.colors)))
-        if np.sum(image.colors - template.colors) == 0.:
+        print('\nImage: ' + image.name +
+              '\nTemplate: ' + template.name +
+              '\nDifference: ' + str(np.sum(image.colors - template.colors)))
+        if round(np.sum(image.colors - template.colors), 2) == 0.:
             equivalent = True
         data['equivalent'] = equivalent
 
