@@ -3,5 +3,5 @@
   "home": "~\\Synthesizer\\",
   "resource_pack": "https://github.com/InvictusGraphics/Invictus_Textures.git",
   "key_repository": "https://github.com/Soartex-Modded/Modded-1.7.x.git",
-  ".minecraft": "~\\Appdata\\Roaming\\.minecraft\\"
+  "mc_version": "1.7.2"
 }

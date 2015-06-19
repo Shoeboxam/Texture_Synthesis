@@ -65,7 +65,7 @@ def network_images(raster_dict, threshold=0, network=None):
     if network is None:
         network = networkx.Graph()
 
-    new_elements = set(raster_dict.keys()) - set(network.nodes)
+    new_elements = set(raster_dict.keys()) - set(network.nodes())
     network.add_nodes_from(new_elements)
 
     def center(nodes):
@@ -150,10 +150,12 @@ def template_metadata(template_directory, image_graph, raster_dict):
 
 def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
     """Save representative data to json files in meta pack"""
+    if not os.path.exists(template_directory):
+        os.makedirs(template_directory)
 
     template_data = {}
-    for json_filename in os.listdir(template_directory + '\\meta\\'):
-        with open(template_directory + '\\meta\\' + json_filename, 'r') as json_file:
+    for json_filename in os.listdir(template_directory):
+        with open(template_directory + json_filename, 'r') as json_file:
             json_data = json.load(json_file)
             template_data[json_data['group_name']] = json_data
 
@@ -225,8 +227,8 @@ def template_process(template_queue, template_directory):
 
         print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
 
-        for index, cluster in enumerate(image_clusters):
-            cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
+        # for index, cluster in enumerate(image_clusters):
+        #     cluster.get_image().save(r"C:\Users\mike_000\Desktop\output\\" + cluster.name + str(index) + '.png')
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []

@@ -1,5 +1,10 @@
 from git import Repo, GitCommandError
+import urllib.request
+import os
 
+from Minecraft.file_utilities import resource_filter
+
+import zipfile
 # from scrapy import Spider, Item, Field
 
 def clone_repo(url, target):
@@ -7,6 +12,21 @@ def clone_repo(url, target):
         Repo.clone_from(url, target)
     except GitCommandError:
         print("Repository already exists, skipping clone")
+
+
+def download_minecraft(version, target):
+    if not os.path.exists(target):
+        os.makedirs(target)
+
+        url = "https://s3.amazonaws.com/Minecraft.Download/versions/" + str(version) + '/' + str(version) + '.jar'
+        urllib.request.urlretrieve(url, target + '\\minecraft.jar')
+
+    if not os.path.exists(target + '\\assets'):
+        with zipfile.ZipFile(target + '\\minecraft.jar') as file_zip:
+            file_zip.extractall(target)
+            resource_filter(target)
+
+
 '''
 # Going to wait on this until I get some sort of ok from Curse...
 class Project(Item):
