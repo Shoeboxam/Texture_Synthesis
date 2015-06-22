@@ -5,7 +5,8 @@ import os
 from Minecraft.file_utilities import resource_filter
 
 import zipfile
-# from scrapy import Spider, Item, Field
+from scrapy import Spider, Item, Field, Selector, Request
+import scrapy
 
 def clone_repo(url, target):
     try:
@@ -28,25 +29,70 @@ def download_minecraft(version, target):
             resource_filter(target)
 
 
-'''
-# Going to wait on this until I get some sort of ok from Curse...
 class Project(Item):
     url = Field()
     name = Field()
 
+
 class CurseforgeSpider(Spider):
-    home_url = r'http://minecraft.curseforge.com/mc-mods'
+    name = 'Curseforge'
+    allowed_domains = ['minecraft.curseforge.com']
+    start_urls = [r'http://minecraft.curseforge.com/mc-mods']
+
+    def start_requests(self):
+        for url in self.start_urls:
+            yield Request(url, callback=self.parse)
 
     def parse(self, response):
-        for index in range(1, 16):
+        names = Selector(response).xpath('//x:div[2]/x:div[2]/x:a').extract()
+        links = Selector(response).xpath('//x:div[2]/x:div[2]/x:a/@href').extract()
+        auths = Selector(response).xpath('//x:div[2]/x:div[2]/x:span/x:a').extract()
+        self.logger.info('%s responded', response.url)
 
-            return [Project(name=e.extract()) for e in response.css("h2 a::text")]
+        for name, link, auth in zip(names, links, auths):
+            mod = Project()
+            mod['name'] = name
+            mod['author'] = auth
+            mod['mod_page'] = link
+
+            yield mod
+
+# scrapy api imports
+from scrapy import signals
+from twisted.internet import reactor
+from scrapy.crawler import Crawler
+from scrapy.settings import Settings
 
 
-def curseforge_mod_scrape(page):
+# list of crawlers
+TO_CRAWL = [CurseforgeSpider]
 
-    # for
-    pass
-    # li.project-list-item:nth-child(1) > div:nth-child(2) > div:nth-child(2) > a:nth-child(1)
-    # li.project-list-item:nth-child(2) > div:nth-child(2) > div:nth-child(2) > a:nth-child(1)
-'''
+# crawlers that are running
+RUNNING_CRAWLERS = []
+
+def spider_closing(spider):
+    """
+    Activates on spider closed signal
+    """
+    RUNNING_CRAWLERS.remove(spider)
+    if not RUNNING_CRAWLERS:
+        reactor.stop()
+
+# set up the crawler and start to crawl one spider at a time
+for spider in TO_CRAWL:
+    settings = Settings()
+
+    # crawl responsibly
+    settings.set("USER_AGENT", "Shoeboxam")
+    crawler = Crawler(settings)
+    crawler_obj = spider()
+    RUNNING_CRAWLERS.append(crawler_obj)
+
+    # stop reactor when spider closes
+    crawler.signals.connect(spider_closing, signal=signals.spider_closed)
+    crawler.configure()
+    crawler.crawl(crawler_obj)
+    crawler.start()
+
+# blocks process; so always keep as the last statement
+reactor.run()
