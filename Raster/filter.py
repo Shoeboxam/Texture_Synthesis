@@ -185,7 +185,6 @@ def merge_similar(raster_list, layer_map=None):
         return clustered_combined_images, layer_map_blank
 
     return clustered_combined_images
-    # TODO: Filter out single pixel clusters
 
 
 def composite(raster_list):

@@ -12,7 +12,7 @@ def clone_repo(url, target):
     try:
         Repo.clone_from(url, target)
     except GitCommandError:
-        print("Repository already exists, skipping clone")
+        print("Repository " + url + " already exists, skipping clone")
 
 
 def download_minecraft(version, target):
@@ -21,6 +21,8 @@ def download_minecraft(version, target):
 
         url = "https://s3.amazonaws.com/Minecraft.Download/versions/" + str(version) + '/' + str(version) + '.jar'
         urllib.request.urlretrieve(url, target + '\\minecraft.jar')
+    else:
+        print('Minecraft ' + str(version) + ' already installed, skipping download')
 
     if not os.path.exists(target + '\\assets'):
         with zipfile.ZipFile(target + '\\minecraft.jar') as file_zip:

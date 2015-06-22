@@ -22,11 +22,11 @@ import ast
 def load_graph(path):
     try:
         json_data = open(path, 'r')
-        dict = json_graph.node_link_graph(eval(json_data.read()))
+        image_graph = json_graph.node_link_graph(eval(json_data.read()))
         json_data.close()
     except FileNotFoundError:
-        dict = networkx.Graph()
-    return dict
+        image_graph = networkx.Graph()
+    return image_graph
 
 
 def save_graph(path, graph):

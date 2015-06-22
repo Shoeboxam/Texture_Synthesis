@@ -2,8 +2,7 @@ import zipfile
 import os
 from distutils.dir_util import copy_tree
 
-from shutil import copytree
-from shutil import rmtree
+from shutil import rmtree, copy2
 
 
 def resource_filter(target_path):
@@ -24,8 +23,40 @@ def resource_filter(target_path):
                 os.rmdir(folder_name)
 
 
+def copy_filter(source_directory, output_directory, paths_to_copy):
+    """Copy untextured files from default pack into new directory"""
+
+    # keep_list returns a list of files that have been textured (to ignore)
+    def keep_list(folder, files):
+        ignore_list = []
+        for file_name in files:
+            full_path = os.path.join(folder, file_name)
+            if not os.path.isdir(full_path):
+                print(type(paths_to_copy))
+                if os.path.normpath(full_path.replace(source_directory, "")) not in paths_to_copy:
+                    ignore_list.append(file_name)
+        return ignore_list
+
+    def copytree(src, dst, symlinks=False, ignore=None):
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                copytree(s, d, symlinks, ignore)
+            else:
+                if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
+                    copy2(s, d)
+
+    copytree(source_directory, output_directory, ignore=keep_list)
+
+
 def extract_files(mods_directory, staging_directory, separate=True):
     """Unzip every mod into staging directory"""
+
+    if not os.path.exists(staging_directory):
+        os.makedirs(staging_directory)
 
     for file_name in os.listdir(mods_directory):
         if file_name.endswith(".jar"):
@@ -41,18 +72,32 @@ def extract_files(mods_directory, staging_directory, separate=True):
                     zip_ob.extractall(mod_path)
                 except PermissionError:
                     print("Skipped " + file_name + " [PermissionError]")
-                except FileNotFoundError:
+                except:
                     pass
 
                 # Rename mod folder to the name of its assets folder, merging shared folders
                 try:
                     os.rename(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
+
+                # Mod naming intuition
                 except FileNotFoundError:
-                    print("Skipping rename of " + file_name + " [FileNotFoundError]")
-                    rmtree(mod_path)
+                    try:
+                        mod_name = os.listdir(mod_path + '\\assets')[0]
+                        print("Auto-assigned modname: " + file_name + " --> " + mod_name + '.')
+                    except FileNotFoundError:
+                        rmtree(mod_path)
+                        continue
+
+                    try:
+                        os.rename(mod_path, os.path.split(mod_path)[0] + '\\' + mod_name)
+                    except FileExistsError:
+                        copy_tree(mod_path, os.path.split(mod_path)[0] + mod_name)
+                        rmtree(mod_path)
                 except FileExistsError:
                     copy_tree(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
                     rmtree(mod_path)
+                except PermissionError:
+                    pass
 
             finally:
                 # Remove lock
@@ -60,7 +105,10 @@ def extract_files(mods_directory, staging_directory, separate=True):
 
 
 def repository_format(source, output, key_repository):
-    """Convert texture pack to repository format """
+    """Convert texture pack to repository format"""
+
+    if not os.path.exists(output):
+        os.makedirs(output)
 
     # Link asset folder name to mod name in key repository
     asset_dictionary = {}
@@ -101,20 +149,3 @@ def get_untextured(resource_pack, default_pack):
 
     # Sort paths to cluster images near each other in directory tree, for readability
     return untextured_paths.sort()
-
-
-def copytree_wrapper(default_pack, diff_pack, untextured_paths):
-    """Copy untextured files from default pack into new directory """
-
-    # Copytree passes list of files it plans to copy
-    # keep_list returns a list of files that have been textured (to ignore)
-    def keep_list(folder, files):
-        ignore_list = []
-        for file_name in files:
-            full_path = os.path.join(folder, file_name)
-            if not os.path.isdir(full_path):
-                if os.path.normpath(full_path.replace(default_pack, "")) not in untextured_paths:
-                    ignore_list.append(file_name)
-        return ignore_list
-
-    copytree(default_pack, diff_pack, ignore=keep_list)
