@@ -44,10 +44,11 @@ class MinecraftSynthesizer:
         """Creates a default texture pack in mod repository format"""
 
         # Create staging pack
-        file_utilities.extract_files(self.mods_directory, self.default_patches)
-        print('Unpacked mods')
-        file_utilities.resource_filter(self.default_patches)
-        print('Filtered image files')
+        # file_utilities.extract_files(self.mods_directory, self.default_patches)
+        # print('Unpacked mods')
+        #
+        # file_utilities.resource_filter(self.default_patches)
+        # print('Isolated image files')
 
         file_utilities.repository_format(self.default_patches, self.repository_patches, self.key_repository)
         print('Extracted repository matches')

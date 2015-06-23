@@ -12,7 +12,7 @@ def clone_repo(url, target):
     try:
         Repo.clone_from(url, target)
     except GitCommandError:
-        print("Repository " + url + " already exists, skipping clone")
+        print("Repository " + url + " already cloned")
 
 
 def download_minecraft(version, target):
@@ -30,6 +30,14 @@ def download_minecraft(version, target):
             file_zip.close()
             resource_filter(target)
 
+
+def key_repository_download(url, key_repository_path):
+    if not os.path.exists(key_repository_path):
+        urllib.request.urlretrieve(url, key_repository_path + '\\master.zip')
+    with zipfile.ZipFile(key_repository_path + '\\master.zip') as file_zip:
+        file_zip.extractall(key_repository_path)
+        file_zip.close()
+        file_zip.extractall
 
 class Project(Item):
     url = Field()

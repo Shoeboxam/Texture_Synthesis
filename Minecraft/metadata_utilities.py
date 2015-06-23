@@ -81,6 +81,7 @@ def network_images(raster_dict, threshold=0, network=None):
             bunch_build[point] = network.degree(point)
         return max(bunch_build.items(), key=operator.itemgetter(1))[0]
 
+    # TODO: Profile/optimize: Primary bottleneck. Possibly implement logging here, assess multithreading
     for group_outer, group_inner in combinations(connected_components(network), 2):
         correlation = analyze.correlate(raster_dict[center(group_outer)], raster_dict[center(group_inner)])
 

@@ -76,25 +76,14 @@ def extract_files(mods_directory, staging_directory, separate=True):
                     pass
 
                 # Rename mod folder to the name of its assets folder, merging shared folders
+                target_folder = staging_directory + os.listdir(mod_path + "\\assets")[0]
                 try:
-                    os.rename(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
-
+                    os.rename(mod_path, target_folder)
                 # Mod naming intuition
                 except FileNotFoundError:
-                    try:
-                        mod_name = os.listdir(mod_path + '\\assets')[0]
-                        print("Auto-assigned modname: " + file_name + " --> " + mod_name + '.')
-                    except FileNotFoundError:
-                        rmtree(mod_path)
-                        continue
-
-                    try:
-                        os.rename(mod_path, os.path.split(mod_path)[0] + '\\' + mod_name)
-                    except FileExistsError:
-                        copy_tree(mod_path, os.path.split(mod_path)[0] + mod_name)
-                        rmtree(mod_path)
+                    rmtree(mod_path)
                 except FileExistsError:
-                    copy_tree(mod_path, staging_directory + os.listdir(mod_path + "\\assets")[0])
+                    copy_tree(mod_path, target_folder)
                     rmtree(mod_path)
                 except PermissionError:
                     pass
@@ -114,14 +103,15 @@ def repository_format(source, output, key_repository):
     asset_dictionary = {}
     for folder in os.listdir(key_repository):
         try:
-            asset_dictionary[folder] = os.listdir(key_repository + '//' + folder + '//assets')[0]
+            asset_dictionary[folder] = os.listdir(key_repository + '//' + folder + '//assets')
         except FileNotFoundError:
             pass  # Ignore nonstandard and .git folders
 
     # Use asset-modname link to identify mods via their asset folder names
     for k, v in asset_dictionary.items():
-        if v in os.listdir(source):
-            copy_tree(source + "\\" + v, output + "\\" + k)
+        for subfolder in v:
+            if subfolder in os.listdir(source):
+                copy_tree(source + "\\" + subfolder, output + "\\" + k)
 
 
 def get_untextured(resource_pack, default_pack):
