@@ -69,21 +69,25 @@ class MinecraftSynthesizer:
 
         # Load all images into memory
         raster_dictionary = metadata_utilities.load_directory(self.default_patches)
+        raster_dictionary_flat = {}
         print("Loaded default images.")
 
         # Group images together/organize into graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
-
+        image_graph = metadata_utilities.network_prune(image_graph, raster_dictionary)
         for image_grouping in raster_dictionary.values():
-            image_graph = metadata_utilities.network_images(image_grouping, threshold=0, network=image_graph)
+            image_graph = metadata_utilities.network_images(
+                image_grouping, threshold=0, network=image_graph)
+
+            raster_dictionary_flat.update(image_grouping)
 
         metadata_utilities.save_graph(self.image_network_path, image_graph)
         print("Updated image graph.")
 
         # Create informational json files for templates and files
-        metadata_utilities.template_metadata(self.template_metadata, image_graph, raster_dictionary)
+        metadata_utilities.template_metadata(self.template_metadata, image_graph, raster_dictionary_flat)
         metadata_utilities.file_metadata(
-            self.file_metadata, self.template_metadata, image_graph, raster_dictionary)
+            self.file_metadata, self.template_metadata, image_graph, raster_dictionary_flat)
         print("Created JSON metadata files.")
 
     def synthesize(self):
@@ -106,6 +110,6 @@ class MinecraftSynthesizer:
 if __name__ == '__main__':
     synthesizer = MinecraftSynthesizer(r"./config.json")
 
-    synthesizer.create_default()
-    synthesizer.create_untextured()
+    # synthesizer.create_default()
+    # synthesizer.create_untextured()
     synthesizer.update_metadata()

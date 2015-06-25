@@ -39,10 +39,9 @@ def load_directory(target):
 
     def threshold(array_in, threshold=0.5):
         array_mask = array_in.copy()
-        boolean_mask = array_mask > threshold
 
-        array_mask[boolean_mask, 0] = 1.0
-        array_mask[not boolean_mask, 0] = 0.0
+        array_mask[array_mask > threshold] = 1.0
+        array_mask[array_mask <= threshold] = 0.0
 
         return array_mask
 
@@ -61,8 +60,20 @@ def load_directory(target):
 
     return raster_dict
 
+
 def node_strength(node):
     return sum(np.array(node.edges(data=True))[:, 2])
+
+
+def network_prune(network, raster_dict):
+    raster_dict_flat = {}
+    for image_grouping in raster_dict.values():
+        raster_dict_flat.update(image_grouping)
+
+    for node in network.nodes():
+        if node not in raster_dict_flat.keys():
+            network.remove_node(node)
+    return network
 
 
 def connectivity_sort(network, threshold=1):
@@ -96,7 +107,7 @@ def network_images(raster_dict, threshold=0, network=None):
         return max(bunch_build.items(), key=operator.itemgetter(1))[0]
 
     # TODO: Profile/optimize: Primary bottleneck. Possibly implement logging here, assess multithreading
-    for group_outer, group_inner in combinations(connected_components(network), 2):
+    for group_outer, group_inner in combinations(connectivity_sort(network), 2):
         correlation = analyze.correlate(raster_dict[center(group_outer)], raster_dict[center(group_inner)])
 
         if correlation > threshold:
