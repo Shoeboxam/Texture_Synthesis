@@ -7,6 +7,7 @@ from networkx.algorithms.components.connected import connected_components, conne
 from networkx.readwrite import json_graph
 
 from itertools import combinations
+from collections import defaultdict
 import operator
 
 from Raster.Raster import Raster
@@ -35,17 +36,30 @@ def save_graph(path, graph):
 
 
 def load_directory(target):
-    raster_dict = {}
+
+    def threshold(array_in, threshold=0.5):
+        array_mask = array_in.copy()
+        boolean_mask = array_mask > threshold
+
+        array_mask[boolean_mask, 0] = 1.0
+        array_mask[not boolean_mask, 0] = 0.0
+
+        return array_mask
+
+    raster_dict = defaultdict(dict)
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
 
             if full_path.endswith('.png'):
-                candidate = Raster.from_path(full_path, 'RGBA')
-                raster_dict[full_path.replace(target, "")] = candidate
+                try:
+                    candidate = Raster.from_path(full_path, 'RGBA')
+                except OSError:
+                    continue
+                # Sort images by thresholded layer mask
+                raster_dict[np.array_str(threshold(candidate.mask))][full_path.replace(target, "")] = candidate
 
     return raster_dict
-
 
 def node_strength(node):
     return sum(np.array(node.edges(data=True))[:, 2])

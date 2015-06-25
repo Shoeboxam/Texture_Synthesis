@@ -32,7 +32,6 @@ def copy_filter(source_directory, output_directory, paths_to_copy):
         for file_name in files:
             full_path = os.path.join(folder, file_name)
             if not os.path.isdir(full_path):
-                print(type(paths_to_copy))
                 if os.path.normpath(full_path.replace(source_directory, "")) not in paths_to_copy:
                     ignore_list.append(file_name)
         return ignore_list
@@ -76,7 +75,11 @@ def extract_files(mods_directory, staging_directory, separate=True):
                     pass
 
                 # Rename mod folder to the name of its assets folder, merging shared folders
-                target_folder = staging_directory + os.listdir(mod_path + "\\assets")[0]
+                try:
+                    target_folder = staging_directory + os.listdir(mod_path + "\\assets")[0]
+                except FileNotFoundError:
+                    continue
+
                 try:
                     os.rename(mod_path, target_folder)
                 # Mod naming intuition

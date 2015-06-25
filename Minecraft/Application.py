@@ -3,6 +3,7 @@ from Minecraft import file_utilities, image_utilities, web_utilities, metadata_u
 import json
 from os.path import normpath, expanduser
 import os
+import shutil
 
 
 class MinecraftSynthesizer:
@@ -15,7 +16,7 @@ class MinecraftSynthesizer:
         self.vanilla_pack = self.home + '\\sources\\vanilla_pack\\'
         self.resource_pack = self.home + '\\sources\\resource_pack\\'
         self.key_repository = self.home + '\\sources\\key_repository\\'
-        self.mods_directory = self.home + "\\sources\\mods\\"
+        self.mods_directory = self.home + '\\sources\\mods\\'
 
         self.default_patches = self.home + '\\staging\\default_patches\\'
         self.repository_patches = self.home + '\\staging\\repository_patches\\'
@@ -44,11 +45,12 @@ class MinecraftSynthesizer:
         """Creates a default texture pack in mod repository format"""
 
         # Create staging pack
-        # file_utilities.extract_files(self.mods_directory, self.default_patches)
-        # print('Unpacked mods')
-        #
-        # file_utilities.resource_filter(self.default_patches)
-        # print('Isolated image files')
+        file_utilities.extract_files(self.mods_directory, self.default_patches)
+        shutil.copy(os.path.normpath(self.vanilla_pack), self.default_patches + '\\minecraft\\')
+        print('Unpacked mods')
+
+        file_utilities.resource_filter(self.default_patches)
+        print('Isolated image files')
 
         file_utilities.repository_format(self.default_patches, self.repository_patches, self.key_repository)
         print('Extracted repository matches')
@@ -64,13 +66,17 @@ class MinecraftSynthesizer:
         file_utilities.copy_filter(self.default_patches, self.untextured_patches, untextured_paths)
 
     def update_metadata(self):
+
         # Load all images into memory
         raster_dictionary = metadata_utilities.load_directory(self.default_patches)
         print("Loaded default images.")
 
         # Group images together/organize into graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
-        image_graph = metadata_utilities.network_images(raster_dictionary, threshold=0, network=image_graph)
+
+        for image_grouping in raster_dictionary.values():
+            image_graph = metadata_utilities.network_images(image_grouping, threshold=0, network=image_graph)
+
         metadata_utilities.save_graph(self.image_network_path, image_graph)
         print("Updated image graph.")
 
@@ -102,4 +108,4 @@ if __name__ == '__main__':
 
     synthesizer.create_default()
     synthesizer.create_untextured()
-    # synthesizer.update_metadata()
+    synthesizer.update_metadata()
