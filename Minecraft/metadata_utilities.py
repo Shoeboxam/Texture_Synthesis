@@ -95,24 +95,14 @@ def network_images(raster_dict, threshold=0, network=None):
     new_elements = set(raster_dict.keys()) - set(network.nodes())
     network.add_nodes_from(new_elements)
 
-    def center(nodes):
-        bunch_build = {}
-        for point in nodes:
-
-            # Quick return in case template already defined
-            if 'group_name' in network.node[point]:
-                return point
-
-            bunch_build[point] = network.degree(point)
-        return max(bunch_build.items(), key=operator.itemgetter(1))[0]
-
     # TODO: Profile/optimize: Primary bottleneck. Possibly implement logging here, assess multithreading
     for group_outer, group_inner in combinations(connectivity_sort(network), 2):
-        correlation = analyze.correlate(raster_dict[center(group_outer)], raster_dict[center(group_inner)])
+        correlation = analyze.correlate(
+            raster_dict[group_outer[0]], raster_dict[group_inner[0]])
 
         if correlation > threshold:
             # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
-            network.add_edge(center(group_inner), center(group_outer), weight=correlation)
+            network.add_edge(group_inner[0], group_outer[0], weight=correlation)
 
     # Name each bunch
     for bunch in [i for i in connected_component_subgraphs(network) if len(i) > 1]:
