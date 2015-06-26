@@ -8,7 +8,6 @@ from networkx.readwrite import json_graph
 
 from itertools import combinations
 from collections import defaultdict
-import operator
 
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
@@ -55,14 +54,10 @@ def load_directory(target):
                     candidate = Raster.from_path(full_path, 'RGBA')
                 except OSError:
                     continue
-                # Sort images by thresholded layer mask
+                # Categorize images by thresholded layer mask
                 raster_dict[np.array_str(threshold(candidate.mask))][full_path.replace(target, "")] = candidate
 
     return raster_dict
-
-
-def node_strength(node):
-    return sum(np.array(node.edges(data=True))[:, 2])
 
 
 def network_prune(network, raster_dict):
@@ -80,6 +75,15 @@ def connectivity_sort(network, threshold=1):
     """Returns each bunch sub-ordered by connectivity"""
 
     connectivity_net = []
+
+    def node_strength(node):
+        node_edges = network.edges(node, data=True)
+        if node_edges:
+            weight_total = 0
+            for weight_dict in np.array(node_edges)[..., 2]:
+                weight_total += weight_dict['weight']
+            return weight_total
+        return 0
 
     for bunch in connected_components(network):
         connectivity_net.append(sorted(bunch, key=node_strength))

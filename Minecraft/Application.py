@@ -60,7 +60,6 @@ class MinecraftSynthesizer:
 
         # Gets a list of textures that have not been made via file diff
         untextured_paths = file_utilities.get_untextured(self.key_repository, self.repository_patches)
-        print(untextured_paths)
 
         # Create a pack with the untextured files
         file_utilities.copy_filter(self.default_patches, self.untextured_patches, untextured_paths)
@@ -76,6 +75,7 @@ class MinecraftSynthesizer:
         image_graph = metadata_utilities.load_graph(self.image_network_path)
         image_graph = metadata_utilities.network_prune(image_graph, raster_dictionary)
         for image_grouping in raster_dictionary.values():
+            print(len(image_grouping))
             image_graph = metadata_utilities.network_images(
                 image_grouping, threshold=0, network=image_graph)
 
