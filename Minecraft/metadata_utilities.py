@@ -6,7 +6,7 @@ import networkx
 from networkx.algorithms.components.connected import connected_components, connected_component_subgraphs
 from networkx.readwrite import json_graph
 
-from itertools import combinations
+from itertools import combinations, chain
 from collections import defaultdict
 
 from Raster.Raster import Raster
@@ -34,7 +34,7 @@ def save_graph(path, graph):
         json_file.write(str(json_graph.node_link_data(graph)))
 
 
-def load_directory(target):
+def image_hash(target, init=None):
 
     def threshold(array_in, threshold=0.5):
         array_mask = array_in.copy()
@@ -44,18 +44,43 @@ def load_directory(target):
 
         return array_mask
 
-    raster_dict = defaultdict(dict)
+    raster_dict = defaultdict(list)
+
+    if init is not None:
+        raster_dict = init
+
+    flat_listing = chain(*raster_dict.values())
+
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
 
-            if full_path.endswith('.png'):
+            if full_path.endswith('.png') and full_path not in flat_listing:
                 try:
                     candidate = Raster.from_path(full_path, 'RGBA')
+
+                    # Categorize images by thresholded layer mask
+                    raster_dict[np.array_str(threshold(candidate.mask))].append(full_path.replace(target, ""))
+
                 except OSError:
                     continue
+
+    return raster_dict
+
+
+def load_paths(root, paths):
+    raster_dict = {}
+
+    for path in paths:
+        if path.endswith('.png'):
+            try:
+                candidate = Raster.from_path(path, 'RGBA')
+
                 # Categorize images by thresholded layer mask
-                raster_dict[np.array_str(threshold(candidate.mask))][full_path.replace(target, "")] = candidate
+                raster_dict[path.replace(root, "")] = candidate
+
+            except OSError:
+                continue
 
     return raster_dict
 
@@ -145,7 +170,7 @@ def network_images(raster_dict, threshold=0, network=None):
     return network
 
 
-def template_metadata(template_directory, image_graph, raster_dict):
+def template_metadata(template_directory, source_directory, image_graph):
     """Generate spectral cluster maps for the templates"""
 
     template_queue = Queue()
@@ -157,11 +182,12 @@ def template_metadata(template_directory, image_graph, raster_dict):
         proc.start()
 
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
-        if raster_dict[bunch[0]].shape != (16, 16):
+        first_image = Raster.from_path(source_directory + bunch[0])
+        if first_image.shape != (16, 16):
             # TODO: Perfect place to tie in GUI generator
             continue
 
-        template_queue.put(raster_dict[image_graph.node[bunch[0]]['group_name']])
+        template_queue.put(source_directory + image_graph.node[bunch[0]]['group_name'])
 
     while not template_queue.empty():
         time.sleep(1)
@@ -170,7 +196,7 @@ def template_metadata(template_directory, image_graph, raster_dict):
         proc.terminate()
 
 
-def file_metadata(output_directory, template_directory, image_graph, raster_dict, sections=3):
+def file_metadata(output_directory, template_directory, source_directory, image_graph, sections=3):
     """Save representative data to json files in meta pack"""
     if not os.path.exists(template_directory):
         os.makedirs(template_directory)
@@ -185,6 +211,7 @@ def file_metadata(output_directory, template_directory, image_graph, raster_dict
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
+            Raster.from_path(source_directory + node)
             keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
 
     # Iterate through each file that is part of the key

@@ -2,7 +2,7 @@ from Minecraft import file_utilities, image_utilities, web_utilities, metadata_u
 
 import json
 from os.path import normpath, expanduser
-import os
+import os, sys
 import shutil
 
 
@@ -66,28 +66,40 @@ class MinecraftSynthesizer:
 
     def update_metadata(self):
 
-        # Load all images into memory
-        raster_dictionary = metadata_utilities.load_directory(self.default_patches)
-        raster_dictionary_flat = {}
-        print("Loaded default images.")
+        # Weakly group images to partition image set size- crucial optimization step
+        if os.path.exists(self.home + '//metadata//preprocess.json'):
+            clumped_paths = json.loads(open(self.home + '//metadata//preprocess.json').read())
+            clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
+        else:
+            clumped_paths = metadata_utilities.image_hash(self.default_patches)
+        print("Loaded source images")
 
-        # Group images together/organize into graph
+        print(clumped_paths)
+
+        with open(self.home + '//metadata//preprocess.json', 'w+') as json_file:
+            json.dumps(clumped_paths, json_file)
+
+        # Combinatorial image grouping to graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
-        image_graph = metadata_utilities.network_prune(image_graph, raster_dictionary)
-        for image_grouping in raster_dictionary.values():
-            print(len(image_grouping))
+
+        total = len(image_graph.nodes())
+        counter = 0.
+
+        for image_paths in clumped_paths.values():
+
+            counter += len(image_paths)
+            sys.stdout.write(str(counter / float(total)) + "% complete")
+
+            image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
             image_graph = metadata_utilities.network_images(
                 image_grouping, threshold=0, network=image_graph)
-
-            raster_dictionary_flat.update(image_grouping)
 
         metadata_utilities.save_graph(self.image_network_path, image_graph)
         print("Updated image graph.")
 
         # Create informational json files for templates and files
-        metadata_utilities.template_metadata(self.template_metadata, image_graph, raster_dictionary_flat)
-        metadata_utilities.file_metadata(
-            self.file_metadata, self.template_metadata, image_graph, raster_dictionary_flat)
+        metadata_utilities.template_metadata(self.template_metadata, self.default_patches, image_graph)
+        metadata_utilities.file_metadata(self.file_metadata, self.template_metadata, self.default_patches, image_graph)
         print("Created JSON metadata files.")
 
     def synthesize(self):
