@@ -59,8 +59,6 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
             # Categorize images by thresholded layer mask
             with raster_lock:
                 raster_dict[image_hash].append(full_path.replace(target, ""))
-                print(len(raster_dict))
-
 
         except OSError:
             continue
@@ -98,7 +96,7 @@ def image_hash(target, init=None):
     for proc in pool:
         proc.terminate()
 
-    return raster_dict
+    return dict(raster_dict)
 
 
 def load_paths(root, paths):
