@@ -13,10 +13,16 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
-from multiprocessing import Process, Queue, cpu_count, Lock
+from multiprocessing import Process, Queue, cpu_count, Lock, Manager
+from multiprocessing.managers import BaseManager, DictProxy
 import time
 
 import ast
+
+class DictManager(BaseManager):
+    pass
+
+DictManager.register('defaultdict', defaultdict, DictProxy)
 
 
 def load_graph(path):
@@ -53,6 +59,7 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
             # Categorize images by thresholded layer mask
             with raster_lock:
                 raster_dict[image_hash].append(full_path.replace(target, ""))
+                print(len(raster_dict))
 
 
         except OSError:
@@ -62,8 +69,9 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
 def image_hash(target, init=None):
 
     raster_dict_lock = Lock()
-
-    raster_dict = defaultdict(list)
+    manager = DictManager()
+    manager.start()
+    raster_dict = manager.defaultdict(list)
 
     if init is not None:
         raster_dict = init
