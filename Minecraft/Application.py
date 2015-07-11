@@ -71,10 +71,12 @@ class MinecraftSynthesizer:
             clumped_paths = json.loads(open(self.home + '//metadata//preprocess.json').read())
             clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
         else:
+            print('test')
             clumped_paths = metadata_utilities.image_hash(self.default_patches)
         print("Loaded source images")
 
-        print(clumped_paths)
+        print(type(clumped_paths))
+        print(len(clumped_paths))
 
         with open(self.home + '//metadata//preprocess.json', 'w+') as json_file:
             json.dumps(clumped_paths, json_file)
@@ -88,7 +90,7 @@ class MinecraftSynthesizer:
         for image_paths in clumped_paths.values():
 
             counter += len(image_paths)
-            sys.stdout.write(str(counter / float(total)) + "% complete")
+            print(str(counter / float(total)) + "% complete")
 
             image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
             image_graph = metadata_utilities.network_images(

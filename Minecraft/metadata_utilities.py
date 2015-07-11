@@ -13,7 +13,7 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Process, Queue, cpu_count, Lock
 import time
 
 import ast
@@ -34,15 +34,34 @@ def save_graph(path, graph):
         json_file.write(str(json_graph.node_link_data(graph)))
 
 
-def image_hash(target, init=None):
+def indexing_process(path_queue, raster_lock, raster_dict, target):
 
     def threshold(array_in, threshold=0.5):
         array_mask = array_in.copy()
-
         array_mask[array_mask > threshold] = 1.0
         array_mask[array_mask <= threshold] = 0.0
 
         return array_mask
+
+    while True:
+        full_path = path_queue.get()
+        try:
+            print(full_path)
+            candidate = Raster.from_path(full_path, 'RGBA')
+            image_hash = np.array_str(threshold(candidate.mask))
+
+            # Categorize images by thresholded layer mask
+            with raster_lock:
+                raster_dict[image_hash].append(full_path.replace(target, ""))
+
+
+        except OSError:
+            continue
+
+
+def image_hash(target, init=None):
+
+    raster_dict_lock = Lock()
 
     raster_dict = defaultdict(list)
 
@@ -50,20 +69,26 @@ def image_hash(target, init=None):
         raster_dict = init
 
     flat_listing = chain(*raster_dict.values())
+    file_queue = Queue()
+
+    pool = [Process(target=indexing_process, args=(file_queue, raster_dict_lock, raster_dict, target), name=str(proc))
+        for proc in range(cpu_count())]
+
+    for proc in pool:
+        proc.start()
 
     for root, folders, files in os.walk(target):
         for current_file in files:
             full_path = root + "\\" + current_file
 
             if full_path.endswith('.png') and full_path not in flat_listing:
-                try:
-                    candidate = Raster.from_path(full_path, 'RGBA')
+                file_queue.put(full_path)
 
-                    # Categorize images by thresholded layer mask
-                    raster_dict[np.array_str(threshold(candidate.mask))].append(full_path.replace(target, ""))
+    while not file_queue.empty():
+        time.sleep(1)
 
-                except OSError:
-                    continue
+    for proc in pool:
+        proc.terminate()
 
     return raster_dict
 
@@ -124,7 +149,6 @@ def network_images(raster_dict, threshold=0, network=None):
     new_elements = set(raster_dict.keys()) - set(network.nodes())
     network.add_nodes_from(new_elements)
 
-    # TODO: Profile/optimize: Primary bottleneck. Possibly implement logging here, assess multithreading
     for group_outer, group_inner in combinations(connectivity_sort(network), 2):
         correlation = analyze.correlate(
             raster_dict[group_outer[0]], raster_dict[group_inner[0]])
