@@ -4,6 +4,7 @@ import json
 from os.path import normpath, expanduser
 import os, sys
 import shutil
+from itertools import chain
 
 
 class MinecraftSynthesizer:
@@ -72,18 +73,19 @@ class MinecraftSynthesizer:
             clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
         else:
             clumped_paths = metadata_utilities.image_hash(self.default_patches)
-        print("Loaded source images")
+        print("Hashed source images")
 
-        with open(self.home + '//metadata//preprocess.json', 'w+') as json_file:
-            json.dumps(clumped_paths, json_file)
+        with open(self.home + '//metadata//preprocess.json', 'w') as json_file:
+            json.dump(clumped_paths, json_file)
 
         # Combinatorial image grouping to graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
 
-        total = len(image_graph.nodes())
+        total = len(list(chain(*clumped_paths.values())))
         counter = 0.
 
         for image_paths in clumped_paths.values():
+            print(len(image_paths))
 
             counter += len(image_paths)
             print(str(counter / float(total)) + "% complete")

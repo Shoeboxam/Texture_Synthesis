@@ -13,7 +13,7 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 import numpy as np
-from multiprocessing import Process, Queue, cpu_count, Lock, Manager
+from multiprocessing import Process, Queue, cpu_count, Lock
 from multiprocessing.managers import BaseManager, DictProxy
 import time
 
@@ -52,13 +52,16 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
     while True:
         full_path = path_queue.get()
         try:
-            print(full_path)
+            image_path = full_path.replace(target, "")
             candidate = Raster.from_path(full_path, 'RGBA')
-            image_hash = np.array_str(threshold(candidate.mask))
+            image_hash = ''.join(char for char in np.array_str(threshold(candidate.mask)) if char.isdigit())
 
             # Categorize images by thresholded layer mask
             with raster_lock:
-                raster_dict[image_hash].append(full_path.replace(target, ""))
+                print(image_path)
+                listobj = raster_dict[image_hash]
+                listobj.append(image_path)
+                raster_dict[image_hash] = listobj
 
         except OSError:
             continue
