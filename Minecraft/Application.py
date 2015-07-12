@@ -70,7 +70,7 @@ class MinecraftSynthesizer:
         # Weakly group images to partition image set size- crucial optimization step
         if os.path.exists(self.home + '//metadata//preprocess.json'):
             clumped_paths = json.loads(open(self.home + '//metadata//preprocess.json').read())
-            clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
+            # clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
         else:
             clumped_paths = metadata_utilities.image_hash(self.default_patches)
         print("Hashed source images")
@@ -85,15 +85,18 @@ class MinecraftSynthesizer:
         counter = 0.
 
         for image_paths in clumped_paths.values():
-            print(len(image_paths))
-
             counter += len(image_paths)
-            print(str(counter / float(total)) + "% complete")
+            print(str(int(counter / float(total) * 100)) + "% complete")
 
-            image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
-            image_graph = metadata_utilities.network_images(
-                image_grouping, threshold=0, network=image_graph)
+            if len(image_paths) > 1:
+                image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
+                image_graph = metadata_utilities.network_images(
+                    image_grouping, threshold=0, network=image_graph)
+            else:
+                image_graph.add_node(image_paths[0])
 
+
+        print(len(image_graph.nodes()))
         metadata_utilities.save_graph(self.image_network_path, image_graph)
         print("Updated image graph.")
 

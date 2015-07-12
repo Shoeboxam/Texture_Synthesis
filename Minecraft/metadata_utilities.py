@@ -58,7 +58,6 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
 
             # Categorize images by thresholded layer mask
             with raster_lock:
-                print(image_path)
                 listobj = raster_dict[image_hash]
                 listobj.append(image_path)
                 raster_dict[image_hash] = listobj
@@ -108,7 +107,7 @@ def load_paths(root, paths):
     for path in paths:
         if path.endswith('.png'):
             try:
-                candidate = Raster.from_path(path, 'RGBA')
+                candidate = Raster.from_path(root + path, 'RGBA')
 
                 # Categorize images by thresholded layer mask
                 raster_dict[path.replace(root, "")] = candidate
@@ -154,8 +153,8 @@ def network_images(raster_dict, threshold=0, network=None):
 
     if network is None:
         network = networkx.Graph()
-
     new_elements = set(raster_dict.keys()) - set(network.nodes())
+    print(new_elements)
     network.add_nodes_from(new_elements)
 
     for group_outer, group_inner in combinations(connectivity_sort(network), 2):
