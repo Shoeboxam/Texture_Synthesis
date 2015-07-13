@@ -10,7 +10,8 @@ from itertools import combinations, chain
 from collections import defaultdict
 
 from Raster.Raster import Raster
-from Raster import filter, math_utilities, analyze
+from Raster import math_utilities, analyze
+from Raster import filter as Rfilter
 
 import numpy as np
 from multiprocessing import Process, Queue, cpu_count, Lock
@@ -80,7 +81,7 @@ def image_hash(target, init=None):
     file_queue = Queue()
 
     pool = [Process(target=indexing_process, args=(file_queue, raster_dict_lock, raster_dict, target), name=str(proc))
-        for proc in range(cpu_count())]
+            for proc in range(cpu_count())]
 
     for proc in pool:
         proc.start()
@@ -129,10 +130,8 @@ def network_prune(network, raster_dict):
     return network
 
 
-def connectivity_sort(network, threshold=1):
-    """Returns each bunch sub-ordered by connectivity"""
-
-    connectivity_net = []
+def connectivity_sort(bunch, network, threshold=1):
+    """Returns a given bunch ordered by connectivity"""
 
     def node_strength(node):
         node_edges = network.edges(node, data=True)
@@ -142,11 +141,7 @@ def connectivity_sort(network, threshold=1):
                 weight_total += weight_dict['weight']
             return weight_total
         return 0
-
-    for bunch in connected_components(network):
-        connectivity_net.append(sorted(bunch, key=node_strength))
-
-    return [i for i in connectivity_net if len(i) > threshold]
+    return sorted(bunch, key=node_strength)
 
 
 def network_images(raster_dict, threshold=0, network=None):
@@ -154,25 +149,24 @@ def network_images(raster_dict, threshold=0, network=None):
     if network is None:
         network = networkx.Graph()
     new_elements = set(raster_dict.keys()) - set(network.nodes())
-    print(new_elements)
     network.add_nodes_from(new_elements)
 
-    for group_outer, group_inner in combinations(connectivity_sort(network), 2):
+    for group_outer, group_inner in combinations(connectivity_sort(list(new_elements), network), 2):
         correlation = analyze.correlate(
-            raster_dict[group_outer[0]], raster_dict[group_inner[0]])
-
+            raster_dict[group_outer], raster_dict[group_inner])
         if correlation > threshold:
             # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
-            network.add_edge(group_inner[0], group_outer[0], weight=correlation)
+            network.add_edge(group_inner, group_outer, weight=correlation)
 
     # Name each bunch
-    for bunch in [i for i in connected_component_subgraphs(network) if len(i) > 1]:
+    for bunch in filter(lambda bunch: len(bunch) > 1, connected_component_subgraphs(network)):
+
         max_node_strength = 0
 
         # Name bunch from greatest node
         greatest_node = None
         name = None
-        for node in bunch:
+        for node in bunch.nodes():
 
             strength = 0
             for edge in list(bunch.edge[node].values()):
@@ -213,13 +207,20 @@ def template_metadata(template_directory, source_directory, image_graph):
     for proc in pool:
         proc.start()
 
-    for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
-        first_image = Raster.from_path(source_directory + bunch[0])
+    for bunch in connected_components(image_graph):
+        bunch = connectivity_sort(bunch, image_graph)[0]
+        print(bunch)
+        print(image_graph.node[bunch[0]])
+        first_image = Raster.from_path(source_directory + bunch)
+
         if first_image.shape != (16, 16):
             # TODO: Perfect place to tie in GUI generator
             continue
 
-        template_queue.put(source_directory + image_graph.node[bunch[0]]['group_name'])
+        try:
+            template_queue.put(source_directory + image_graph.node[bunch]['group_name'])
+        except KeyError:
+            continue
 
     while not template_queue.empty():
         time.sleep(1)
@@ -258,8 +259,8 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             continue
 
         # Use corresponding cluster map
-        image_clusters = filter.layer_decomposite(default_image, layer_map)
-        templ_clusters = filter.layer_decomposite(raster_dict[template_name], layer_map)
+        image_clusters = Rfilter.layer_decomposite(default_image, layer_map)
+        templ_clusters = Rfilter.layer_decomposite(raster_dict[template_name], layer_map)
 
         # Analyze each cluster
         segment_metalist = []

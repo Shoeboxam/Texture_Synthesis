@@ -95,8 +95,6 @@ class MinecraftSynthesizer:
             else:
                 image_graph.add_node(image_paths[0])
 
-
-        print(len(image_graph.nodes()))
         metadata_utilities.save_graph(self.image_network_path, image_graph)
         print("Updated image graph.")
 
