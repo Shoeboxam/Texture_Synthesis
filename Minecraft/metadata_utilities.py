@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from Raster.Raster import Raster
 from Raster import math_utilities, analyze
-from Raster import filter as Rfilter
+from Raster import filter as filter_raster
 
 import numpy as np
 from multiprocessing import Process, Queue, cpu_count, Lock
@@ -19,6 +19,7 @@ from multiprocessing.managers import BaseManager, DictProxy
 import time
 
 import ast
+
 
 class DictManager(BaseManager):
     pass
@@ -43,10 +44,10 @@ def save_graph(path, graph):
 
 def indexing_process(path_queue, raster_lock, raster_dict, target):
 
-    def threshold(array_in, threshold=0.5):
+    def threshold(array_in, thresh=0.5):
         array_mask = array_in.copy()
-        array_mask[array_mask > threshold] = 1.0
-        array_mask[array_mask <= threshold] = 0.0
+        array_mask[array_mask > thresh] = 1.0
+        array_mask[array_mask <= thresh] = 0.0
 
         return array_mask
 
@@ -55,13 +56,13 @@ def indexing_process(path_queue, raster_lock, raster_dict, target):
         try:
             image_path = full_path.replace(target, "")
             candidate = Raster.from_path(full_path, 'RGBA')
-            image_hash = ''.join(char for char in np.array_str(threshold(candidate.mask)) if char.isdigit())
+            image_hash_id = ''.join(char for char in np.array_str(threshold(candidate.mask)) if char.isdigit())
 
             # Categorize images by thresholded layer mask
             with raster_lock:
-                listobj = raster_dict[image_hash]
+                listobj = raster_dict[image_hash_id]
                 listobj.append(image_path)
-                raster_dict[image_hash] = listobj
+                raster_dict[image_hash_id] = listobj
 
         except OSError:
             continue
@@ -130,7 +131,7 @@ def network_prune(network, raster_dict):
     return network
 
 
-def connectivity_sort(bunch, network, threshold=1):
+def connectivity_sort(bunch, network):
     """Returns a given bunch ordered by connectivity"""
 
     def node_strength(node):
@@ -159,7 +160,7 @@ def network_images(raster_dict, threshold=0, network=None):
             network.add_edge(group_inner, group_outer, weight=correlation)
 
     # Name each bunch
-    for bunch in filter(lambda bunch: len(bunch) > 1, connected_component_subgraphs(network)):
+    for bunch in filter(lambda group: len(group) > 1, connected_component_subgraphs(network)):
 
         max_node_strength = 0
 
@@ -209,8 +210,6 @@ def template_metadata(template_directory, source_directory, image_graph):
 
     for bunch in connected_components(image_graph):
         bunch = connectivity_sort(bunch, image_graph)[0]
-        print(bunch)
-        print(image_graph.node[bunch[0]])
         first_image = Raster.from_path(source_directory + bunch)
 
         if first_image.shape != (16, 16):
@@ -259,8 +258,8 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             continue
 
         # Use corresponding cluster map
-        image_clusters = Rfilter.layer_decomposite(default_image, layer_map)
-        templ_clusters = Rfilter.layer_decomposite(raster_dict[template_name], layer_map)
+        image_clusters = filter_raster.layer_decomposite(default_image, layer_map)
+        templ_clusters = filter_raster.layer_decomposite(raster_dict[template_name], layer_map)
 
         # Analyze each cluster
         segment_metalist = []
@@ -300,8 +299,8 @@ def template_process(template_queue, template_directory):
             # Clustering algorithm
             layer_map = analyze.cluster(template_image, sections)
 
-        image_clusters = filter.layer_decomposite(template_image, layer_map)
-        image_clusters, guide = filter.merge_similar(image_clusters, layer_map=layer_map)
+        image_clusters = filter_raster.layer_decomposite(template_image, layer_map)
+        image_clusters, guide = filter_raster.merge_similar(image_clusters, layer_map=layer_map)
 
         print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
 
