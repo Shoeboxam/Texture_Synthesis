@@ -5,7 +5,7 @@ import os
 from Minecraft.file_utilities import resource_filter
 
 import zipfile
-from scrapy import Spider, Item, Field, Selector, Request
+# from scrapy import Spider, Item, Field, Selector, Request
 import scrapy
 
 def clone_repo(url, target):
@@ -36,32 +36,30 @@ def key_repository_download(url, key_repository_path):
     with zipfile.ZipFile(key_repository_path + '\\master.zip') as file_zip:
         file_zip.extractall(key_repository_path)
         file_zip.close()
-        file_zip.extractall
 
-class Project(Item):
-    url = Field()
-    name = Field()
+#     url = Field()
+#     name = Field()
 
 
-class CurseforgeSpider(Spider):
-    name = 'Curseforge'
-    allowed_domains = ['minecraft.curseforge.com']
-    start_urls = [r'http://minecraft.curseforge.com/mc-mods']
-
-    def start_requests(self):
-        for url in self.start_urls:
-            yield Request(url, callback=self.parse)
-
-    def parse(self, response):
-        names = Selector(response).xpath('//x:div[2]/x:div[2]/x:a').extract()
-        links = Selector(response).xpath('//x:div[2]/x:div[2]/x:a/@href').extract()
-        auths = Selector(response).xpath('//x:div[2]/x:div[2]/x:span/x:a').extract()
-        self.logger.info('%s responded', response.url)
-
-        for name, link, auth in zip(names, links, auths):
-            mod = Project()
-            mod['name'] = name
-            mod['author'] = auth
-            mod['mod_page'] = link
-
-            yield mod
+# class CurseforgeSpider(Spider):
+#     name = 'Curseforge'
+#     allowed_domains = ['minecraft.curseforge.com']
+#     start_urls = [r'http://minecraft.curseforge.com/mc-mods']
+#
+#     def start_requests(self):
+#         for url in self.start_urls:
+#             yield Request(url, callback=self.parse)
+#
+#     def parse(self, response):
+#         names = Selector(response).xpath('//x:div[2]/x:div[2]/x:a').extract()
+#         links = Selector(response).xpath('//x:div[2]/x:div[2]/x:a/@href').extract()
+#         auths = Selector(response).xpath('//x:div[2]/x:div[2]/x:span/x:a').extract()
+#         self.logger.info('%s responded', response.url)
+#
+#         for name, link, auth in zip(names, links, auths):
+#             mod = Project()
+#             mod['name'] = name
+#             mod['author'] = auth
+#             mod['mod_page'] = link
+#
+#             yield mod

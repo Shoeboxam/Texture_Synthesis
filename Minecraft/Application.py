@@ -81,22 +81,22 @@ class MinecraftSynthesizer:
         # Combinatorial image grouping to graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
 
-        total = len(list(chain(*clumped_paths.values())))
-        counter = 0.
-
-        for image_paths in clumped_paths.values():
-            counter += len(image_paths)
-            print(str(int(counter / float(total) * 100)) + "% complete")
-
-            if len(image_paths) > 1:
-                image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
-                image_graph = metadata_utilities.network_images(
-                    image_grouping, threshold=0, network=image_graph)
-            else:
-                image_graph.add_node(image_paths[0])
-
-        metadata_utilities.save_graph(self.image_network_path, image_graph)
-        print("Updated image graph.")
+        # total = len(list(chain(*clumped_paths.values())))
+        # counter = 0.
+        #
+        # for image_paths in clumped_paths.values():
+        #     counter += len(image_paths)
+        #     print(str(int(counter / float(total) * 100)) + "% complete")
+        #
+        #     if len(image_paths) > 1:
+        #         image_grouping = metadata_utilities.load_paths(self.default_patches, image_paths)
+        #         image_graph = metadata_utilities.network_images(
+        #             image_grouping, threshold=0, network=image_graph)
+        #     else:
+        #         image_graph.add_node(image_paths[0])
+        #
+        # metadata_utilities.save_graph(self.image_network_path, image_graph)
+        # print("Updated image graph.")
 
         # Create informational json files for templates and files
         metadata_utilities.template_metadata(self.template_metadata, self.default_patches, image_graph)

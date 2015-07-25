@@ -202,7 +202,8 @@ def template_metadata(template_directory, source_directory, image_graph):
 
     template_queue = Queue()
 
-    pool = [Process(target=template_process, args=(template_queue, template_directory), name=str(proc))
+    pool = [Process(target=template_process,
+            args=(template_queue, template_directory, source_directory), name=str(proc))
             for proc in range(cpu_count())]
 
     for proc in pool:
@@ -210,7 +211,7 @@ def template_metadata(template_directory, source_directory, image_graph):
 
     for bunch in connected_components(image_graph):
         bunch = connectivity_sort(bunch, image_graph)[0]
-        first_image = Raster.from_path(source_directory + bunch)
+        first_image = Raster.from_path(source_directory + bunch, 'RGBA')
 
         if first_image.shape != (16, 16):
             # TODO: Perfect place to tie in GUI generator
@@ -243,8 +244,8 @@ def file_metadata(output_directory, template_directory, source_directory, image_
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
-            Raster.from_path(source_directory + node)
-            keys[node] = image_graph.node[node]['group_name'], raster_dict[node]
+            Raster.from_path(source_directory + node, 'RGBA')
+            keys[node] = image_graph.node[node]['group_name'], Raster.from_path(source_directory + node, 'RGBA')
 
     # Iterate through each file that is part of the key
     for key, (template_name, default_image) in keys.items():
@@ -259,7 +260,8 @@ def file_metadata(output_directory, template_directory, source_directory, image_
 
         # Use corresponding cluster map
         image_clusters = filter_raster.layer_decomposite(default_image, layer_map)
-        templ_clusters = filter_raster.layer_decomposite(raster_dict[template_name], layer_map)
+        templ_clusters = filter_raster.layer_decomposite(
+            Raster.from_path(source_directory + template_name, 'RGBA'), layer_map)
 
         # Analyze each cluster
         segment_metalist = []
@@ -282,11 +284,12 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 
-def template_process(template_queue, template_directory):
+def template_process(template_queue, template_directory, home):
     while True:
-        template_image = template_queue.get()
+        time.sleep(1)
+        template_name = template_queue.get()
 
-        template_name = template_image.name
+        template_image = Raster.from_path(template_name, 'RGBA')
         template_image.to_hsv()
 
         # Intuition on how many sections to split an image into
@@ -313,7 +316,7 @@ def template_process(template_queue, template_directory):
             segment_metalist.append(analyze_image(segment, granularity=sections))
 
         meta_dict = {
-            'group_name': template_name,
+            'group_name': template_name.replace(home, ''),
             'segment_dicts': segment_metalist,
             'cluster_map': json.dumps(guide.tolist())
         }
