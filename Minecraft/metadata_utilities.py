@@ -258,8 +258,11 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             print("Could not find: " + template_directory + "\\" + os.path.split(template_name)[1] + ".json")
             continue
 
-        # Use corresponding cluster map
-        image_clusters = filter_raster.layer_decomposite(default_image, layer_map)
+        # Use corresponding cluster map to break image into pieces
+        try:
+            image_clusters = filter_raster.layer_decomposite(default_image, layer_map)
+        except ValueError:
+            continue
         templ_clusters = filter_raster.layer_decomposite(
             Raster.from_path(source_directory + template_name, 'RGBA'), layer_map)
 
