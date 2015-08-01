@@ -287,26 +287,31 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 
+def image_cluster(template_name):
+    template_image = Raster.from_path(template_name, 'RGBA')
+    template_image.to_hsv()
+
+    # Intuition on how many sections to split an image into
+    sections = int(max(analyze.variance(template_image)) * 50)
+
+    if sections < 2:
+        layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
+        sections = 1
+    else:
+        # Clustering algorithm
+        layer_map = analyze.cluster(template_image, sections)
+
+    image_clusters = filter_raster.layer_decomposite(template_image, layer_map)
+    return filter_raster.merge_similar(image_clusters, layer_map=layer_map)
+
+
 def template_process(template_queue, template_directory, home):
     while True:
         time.sleep(1)
         template_name = template_queue.get()
 
-        template_image = Raster.from_path(template_name, 'RGBA')
-        template_image.to_hsv()
-
-        # Intuition on how many sections to split an image into
-        sections = int(max(analyze.variance(template_image)) * 50)
-
-        if sections < 2:
-            layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
-            sections = 1
-        else:
-            # Clustering algorithm
-            layer_map = analyze.cluster(template_image, sections)
-
-        image_clusters = filter_raster.layer_decomposite(template_image, layer_map)
-        image_clusters, guide = filter_raster.merge_similar(image_clusters, layer_map=layer_map)
+        image_clusters, guide = image_cluster(template_name)
+        sections = len(image_clusters)
 
         print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
 
@@ -329,7 +334,7 @@ def template_process(template_queue, template_directory, home):
             os.makedirs(template_directory)
 
         # Save json file
-        with open(template_directory + "\\" + template_image.name + ".json", 'w') as output_file:
+        with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 

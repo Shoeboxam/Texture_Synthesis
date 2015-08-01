@@ -131,10 +131,14 @@ class MinecraftSynthesizer:
             self.untextured_patches, self.resource_pack, template_paths, self.template_metadata)
         print("Wrote additions to templates.")
 
-        key_dict = image_utilities.template_reader(template_paths, image_graph)
+        # key_dict = image_utilities.template_reader(template_paths, image_graph)
+        for resource_template in template_paths:
+            image_utilities.resource_cluster_correspondence(
+                resource_template, self.resource_pack, self.file_metadata, self.template_metadata)
 
         # Converts json files to images with templates
-        image_utilities.populate_images(self.template_metadata, self.file_metadata, self.output_path)
+        image_utilities.populate_images(
+            self.default_patches, self.template_metadata, self.file_metadata, self.output_path)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,14 @@
 import os
 import json
+import ast
 from networkx.algorithms.components.connected import connected_components
 
 from shutil import copy
 
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
+
+from Minecraft.metadata_utilities import image_cluster
 
 import numpy as np
 
@@ -33,6 +36,7 @@ def template_reader(template_paths, image_graph):
         for node in targets:
             image_keys[template] = node
 
+    print(image_keys)
     return image_keys
 
 
@@ -68,7 +72,7 @@ def list_templates(template_path):
     return matches
 
 
-def populate_images(templates_path, metadata_pack, output_path):
+def populate_images(source_files, template_directory, metadata_pack, output_path):
 
     for root, folders, files in os.walk(metadata_pack):
         for image_file in files:
@@ -79,12 +83,15 @@ def populate_images(templates_path, metadata_pack, output_path):
                 # Open data sources
                 try:
                     json_data = json.load(json_file)
-                    template = Raster.from_path(templates_path + '\\values\\' + json_data['group_name'], 'RGBA')
+                    template_json_data = json.load(
+                        template_directory + '//' + os.path.split(json_data['group_name'])[1] + '.json')
+                    template = Raster.from_path(source_files + '//' + json_data['group_name'], 'RGBA')
                 except IOError:
+                    print('IOError: skipping map')
                     continue
 
                 # Transform image
-                output_image = apply_template(template, json_data)
+                output_image = apply_template(template, json_data, template_json_data)
 
                 # Output/save image
                 full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
@@ -95,9 +102,9 @@ def populate_images(templates_path, metadata_pack, output_path):
                 output_image.get_image().save(full_path_output)
 
 
-def apply_template(image, json_data):
+def apply_template(image, json_data, template_json_data):
     # Split into clusters
-    pieces = filter.layer_decomposite(image, json_data['cluster_map'])
+    pieces = filter.layer_decomposite(image, template_json_data['cluster_map'])
 
     altered_pieces = []
     for segment, cluster_data in zip(pieces, json_data['segment_dicts']):
@@ -143,3 +150,22 @@ def apply_template(image, json_data):
         altered_pieces.append(staged_image)
 
     return filter.composite(altered_pieces)
+
+
+def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
+    resource_clusters, resource_guide = image_cluster(
+         resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:])))
+
+    print(file_metadata_path + '\\' + template_filename + '.json')
+    group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+
+    template_metadata_json = json.loads(
+        open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
+
+    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map']))
+
+    print(type(default_guide))
+    print(type(resource_guide))
+    print('\n')
+
+    return
