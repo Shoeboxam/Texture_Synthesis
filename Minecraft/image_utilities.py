@@ -79,7 +79,7 @@ def populate_images(templates_path, metadata_pack, output_path):
                 # Open data sources
                 try:
                     json_data = json.load(json_file)
-                    template = Raster.from_path(templates_path + '\\values\\' + json_data['template'], 'RGBA')
+                    template = Raster.from_path(templates_path + '\\values\\' + json_data['group_name'], 'RGBA')
                 except IOError:
                     continue
 
