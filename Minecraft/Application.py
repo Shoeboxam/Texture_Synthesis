@@ -5,7 +5,7 @@ from os.path import normpath, expanduser
 import os, sys
 import shutil
 from itertools import chain
-
+from networkx import connected_component_subgraphs
 
 class MinecraftSynthesizer:
 
@@ -108,7 +108,24 @@ class MinecraftSynthesizer:
 
         # Update template directory
         image_graph = metadata_utilities.load_graph(self.home + '\\metadata\\image_graph.json')
-        template_paths = metadata_utilities.connectivity_sort(image_graph)
+
+        template_paths = []
+
+        def template_selection(paths):
+            for node in paths:
+                if os.path.exists(self.resource_pack + '\\' +  os.path.join(*(node.split(os.path.sep)[1:]))):
+                    template_paths.append(node)
+                    return
+
+        for bunch in connected_component_subgraphs(image_graph):
+            sorted_bunch = metadata_utilities.connectivity_sort(bunch.nodes(), bunch)
+
+            if len(sorted_bunch) == 1:
+                continue
+
+            template_selection(sorted_bunch)
+
+        print(str(len(template_paths)) + ' templates identified.')
 
         image_utilities.prepare_templates(
             self.untextured_patches, self.resource_pack, template_paths, self.template_metadata)
