@@ -9,6 +9,7 @@ from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
 from Minecraft.metadata_utilities import image_cluster
+from sklearn import mixture
 
 import numpy as np
 
@@ -153,19 +154,24 @@ def apply_template(image, json_data, template_json_data):
 
 
 def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
-    resource_clusters, resource_guide = image_cluster(
-         resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:])))
+    # resource_clusters, resource_guide = image_cluster(
+    #      resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:])))
 
-    print(file_metadata_path + '\\' + template_filename + '.json')
-    group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+    try:
+        group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+    except FileNotFoundError:
+        return
 
     template_metadata_json = json.loads(
         open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
 
-    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map']))
+    # resource_guide = np.reshape(resource_guide, resource_clusters[0].shape)
+    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape((16, 16))
 
-    print(type(default_guide))
-    print(type(resource_guide))
-    print('\n')
-
+    try:
+        GMM_obj = mixture.GMM(n_components=max(default_guide.flatten()), random_state=0, n_init=1, n_iter=100)
+        GMM_obj.fit(default_guide)
+        print(str(GMM_obj.weights_) + ' ' + file_metadata_path + '\\' + template_filename + '.json')
+    except OverflowError:
+        print("    Overflow: " + template_filename + '.json')
     return
