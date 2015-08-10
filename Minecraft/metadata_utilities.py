@@ -287,8 +287,7 @@ def file_metadata(output_directory, template_directory, source_directory, image_
             json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
 
-def image_cluster(template_name):
-    template_image = Raster.from_path(template_name, 'RGBA')
+def image_cluster(template_image):
     template_image.to_hsv()
 
     # Intuition on how many sections to split an image into
@@ -310,7 +309,8 @@ def template_process(template_queue, template_directory, home):
         time.sleep(1)
         template_name = template_queue.get()
 
-        image_clusters, guide = image_cluster(template_name)
+        template_image = Raster.from_path(template_name, 'RGBA')
+        image_clusters, guide = image_cluster(template_image)
         sections = len(image_clusters)
 
         print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
@@ -326,7 +326,8 @@ def template_process(template_queue, template_directory, home):
         meta_dict = {
             'group_name': template_name.replace(home, ''),
             'segment_dicts': segment_metalist,
-            'cluster_map': json.dumps(guide.tolist())
+            'cluster_map': json.dumps(guide.tolist()),
+            'shape': str(template_image.shape)
         }
 
         # Create folder structure

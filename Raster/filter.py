@@ -224,4 +224,27 @@ def composite(raster_list):
             pixel_accumulator.append([0., 0., 0.])
             mask_construct.append(0.)
 
-    return Raster.Raster(pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)
+    return Raster.Raster(
+        pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)
+
+
+def resize(raster, size):
+    # No interpolation
+    step = np.array(raster.shape) / np.array(size)
+
+    pixels = np.zeros((size[0], size[1], raster.colors.shape[1]))
+    mask = np.zeros(size)
+
+    tiered = raster.get_tiered()
+
+    for x_source, x_target in enumerate(np.linspace(0, raster.shape[0]-1, step[0])):
+        for y_source, y_target in enumerate(np.linspace(0, raster.shape[1]-1, step[1])):
+            pixel = tiered[int(x_target), int(y_target)]
+            pixels[x_source, y_source] = pixel[0:3]
+            mask[x_source, y_source] = pixel[3]
+
+    return Raster.Raster(pixels.reshape((np.product(size), raster.colors.shape[1])),
+                         np.array(size),
+                         raster.mode,
+                         mask.reshape(np.product(size)),
+                         name=raster.name)

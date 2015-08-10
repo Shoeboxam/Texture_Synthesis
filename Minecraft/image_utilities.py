@@ -154,24 +154,27 @@ def apply_template(image, json_data, template_json_data):
 
 
 def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
-    # resource_clusters, resource_guide = image_cluster(
-    #      resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:])))
-
     try:
         group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+        template_metadata_json = json.loads(
+            open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
     except FileNotFoundError:
         return
 
-    template_metadata_json = json.loads(
-        open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
+    template_name = resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
+    template_image = Raster.from_path(template_name, 'RGBA')
 
-    # resource_guide = np.reshape(resource_guide, resource_clusters[0].shape)
+    template_image = filter.resize(template_image, ast.literal_eval(template_metadata_json['shape']))
+    resource_clusters, resource_guide = image_cluster(template_image)
+
+    resource_guide = np.reshape(resource_guide, resource_clusters[0].shape)
     default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape((16, 16))
+    data = np.vstack((resource_guide, default_guide))
 
     try:
-        GMM_obj = mixture.GMM(n_components=max(default_guide.flatten()), random_state=0, n_init=1, n_iter=100)
-        GMM_obj.fit(default_guide)
-        print(str(GMM_obj.weights_) + ' ' + file_metadata_path + '\\' + template_filename + '.json')
+        GMM_obj = mixture.GMM(n_components=max(data.flatten()), random_state=0, n_init=1, n_iter=100)
+        GMM_obj.fit(data)
+        print(str(GMM_obj.means_) + ' ' + file_metadata_path + '\\' + template_filename + '.json')
     except OverflowError:
         print("    Overflow: " + template_filename + '.json')
     return
