@@ -80,7 +80,7 @@ def cluster(raster, pieces):
         try:
             labels = spectral_clustering(graph, n_clusters=pieces, assign_labels='discretize', random_state=1)
             success = True
-        except LinAlgError:
+        except (LinAlgError, ValueError):
             pieces -=1
 
             # If clustering is non-convergent, return single cluster

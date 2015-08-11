@@ -12,7 +12,7 @@ from Minecraft.metadata_utilities import image_cluster
 from sklearn import mixture
 
 import numpy as np
-
+np.set_printoptions(precision=2, linewidth=1000)
 
 def prepare_templates(default_pack, resource_pack, path_list, template_directory):
     if not os.path.exists(template_directory):
@@ -163,18 +163,37 @@ def resource_cluster_correspondence(template_filename, resource_pack_path, file_
 
     template_name = resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
     template_image = Raster.from_path(template_name, 'RGBA')
+    print(template_image.name)
 
     template_image = filter.resize(template_image, ast.literal_eval(template_metadata_json['shape']))
+    template_image.get_image().save("C:\\Users\mike_000\Pictures\image.png")
     resource_clusters, resource_guide = image_cluster(template_image)
 
-    resource_guide = np.reshape(resource_guide, resource_clusters[0].shape)
-    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape((16, 16))
-    data = np.vstack((resource_guide, default_guide))
+    resource_guide = np.reshape(resource_guide, template_image.shape)
+    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(template_image.shape)
 
     try:
-        GMM_obj = mixture.GMM(n_components=max(data.flatten()), random_state=0, n_init=1, n_iter=100)
-        GMM_obj.fit(data)
-        print(str(GMM_obj.means_) + ' ' + file_metadata_path + '\\' + template_filename + '.json')
+        components = math_utilities.clamp(len(template_metadata_json['segment_dicts']), 0, 16)
+        resource_gmm = mixture.GMM(
+            n_components=components,
+            random_state=0,
+            n_init=1,
+            n_iter=100).fit(resource_guide)
+
+        default_gmm = mixture.GMM(
+            n_components=components,
+            random_state=0,
+            n_init=1,
+            n_iter=100).fit(default_guide)
+
+        flt = + .01
+        print('Weights')
+        print(str(resource_gmm.weights_ + flt) + '\n' + str(default_gmm.weights_ + flt))
+        print('Means')
+        print(str(resource_gmm.means_ + flt) + '\n' + str(default_gmm.means_ + flt))
+        print('Covars')
+        print(str(resource_gmm.covars_ + flt) + '\n' + str(default_gmm.covars_ + flt))
+
     except OverflowError:
         print("    Overflow: " + template_filename + '.json')
     return
