@@ -114,7 +114,7 @@ class Raster(object):
         return np.array([np.append(color, alpha) for color, alpha in zip(self._colors, self._mask) if alpha > 0])
 
     def get_tiered(self):
-        return np.reshape(self.with_alpha(), (self._shape[1], self._shape[0], 4))
+        return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 4))
 
     @classmethod
     def from_array(cls, array, mode):

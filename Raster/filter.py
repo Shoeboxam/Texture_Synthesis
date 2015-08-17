@@ -228,22 +228,26 @@ def composite(raster_list):
         pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)
 
 
-def resize(raster, size):
+def frame_resize(raster, size):
     # No interpolation
+    frame_count = int(raster.shape[1] / raster.shape[0])
+    frame_size = raster.shape[0]
 
-    pixels = np.zeros((size[0], size[1], raster.colors.shape[1]))
-    mask = np.zeros(size)
+    pixels = np.zeros((size[0], size[1] * frame_count, raster.colors.shape[1]))
+    mask = np.zeros((size[0], size[1] * frame_count))
 
     tiered = raster.get_tiered()
+    print('Frame count: ' + str(frame_count))
+    print(tiered.shape)
+    for frame in range(frame_count):
+        for x_source, x_target in enumerate(np.linspace(0, frame_size-1, size[0])):
+            for y_source, y_target in enumerate(np.linspace(0, frame_size-1, size[1])):
+                pixel = tiered[int(x_target), int(y_target + frame_size * frame)]
+                pixels[x_source, y_source + size[1] * frame] = pixel[0:3]
+                mask[x_source, y_source + size[1] * frame] = pixel[3]
 
-    for x_source, x_target in enumerate(np.linspace(0, raster.shape[0]-1, size[0])):
-        for y_source, y_target in enumerate(np.linspace(0, raster.shape[1]-1, size[1])):
-            pixel = tiered[int(x_target), int(y_target)]
-            pixels[x_source, y_source] = pixel[0:3]
-            mask[x_source, y_source] = pixel[3]
-
-    return Raster.Raster(pixels.reshape((np.product(size), raster.colors.shape[1])),
-                         np.array(size),
+    return Raster.Raster(pixels.reshape((np.product(size) * frame_count, raster.colors.shape[1])),
+                         np.array((size[0], size[1] * frame_count)),
                          raster.mode,
-                         mask.reshape(np.product(size)),
+                         mask.reshape((np.product(size) * frame_count)),
                          name=raster.name)
