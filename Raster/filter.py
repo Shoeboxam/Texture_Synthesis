@@ -104,12 +104,17 @@ def value_decomposite(raster, layers):
 
 def layer_decomposite(raster, layer_map):
     clustered_images = []
-    for cluster in range(max(layer_map) + 1):
+
+    for cluster in range(int(max(layer_map) + 1)):
         filtered_mask = np.equal(cluster, layer_map) * raster.mask
+
         if sum(filtered_mask) > 0:
             new_image = copy.deepcopy(raster)
             new_image.mask = filtered_mask
             clustered_images.append(new_image)
+
+    if len(clustered_images) == 0:
+        return [raster]
 
     return clustered_images
 
@@ -135,7 +140,10 @@ def merge_similar(raster_list, layer_map=None):
 
     # Graph all pixels in 3D, fit a box to the data, then take the distance from the two furthest corners
     # Used to represent the magnitude, or scale of data.
-    magnitude = euclidean_distance(np.amin(image_whole.get_opaque(), axis=0), np.amax(image_whole.get_opaque(), axis=0))
+    try:
+        magnitude = euclidean_distance(np.amin(image_whole.get_opaque(), axis=0), np.amax(image_whole.get_opaque(), axis=0))
+    except ValueError:
+        magnitude = 10000
     # print(magnitude / len(clustered_images))
 
     # Calculate difference between each cluster.
@@ -189,6 +197,7 @@ def merge_similar(raster_list, layer_map=None):
 
 def composite(raster_list):
     """Combine all input layers with additive alpha blending"""
+    channel_count = Raster.channel_depth[raster_list[0].mode]
 
     pixel_layers = []
     for img in raster_list:
@@ -201,14 +210,14 @@ def composite(raster_list):
     for pixel_profile in np.array(list(zip(*pixel_layers))):
 
         # Opacity is the sum of alpha channels
-        opacity = sum(pixel_profile[:, 3])
+        opacity = sum(pixel_profile[:, channel_count])
 
         # If one of the pixels has opacity
         if opacity != 0:
             pixel = []
 
             # Treat opacity as weight
-            weights = pixel_profile[:, 3]
+            weights = pixel_profile[:, channel_count]
 
             # Condense profile down into one representative pixel
             for channel_index, channel_id in enumerate(raster_list[0].mode):
@@ -230,6 +239,9 @@ def composite(raster_list):
 
 def frame_resize(raster, size):
     # No interpolation
+
+    channel_count = Raster.channel_depth[raster.mode]
+
     frame_count = int(raster.shape[1] / raster.shape[0])
     frame_size = raster.shape[0]
 
@@ -237,17 +249,32 @@ def frame_resize(raster, size):
     mask = np.zeros((size[0], size[1] * frame_count))
 
     tiered = raster.get_tiered()
-    print('Frame count: ' + str(frame_count))
-    print(tiered.shape)
+    # print('Frame count: ' + str(frame_count))
+    # print(tiered.shape)
     for frame in range(frame_count):
         for x_source, x_target in enumerate(np.linspace(0, frame_size-1, size[0])):
             for y_source, y_target in enumerate(np.linspace(0, frame_size-1, size[1])):
                 pixel = tiered[int(x_target), int(y_target + frame_size * frame)]
-                pixels[x_source, y_source + size[1] * frame] = pixel[0:3]
-                mask[x_source, y_source + size[1] * frame] = pixel[3]
+                pixels[x_source, y_source + size[1] * frame] = pixel[0:channel_count]
+                mask[x_source, y_source + size[1] * frame] = pixel[channel_count]
 
     return Raster.Raster(pixels.reshape((np.product(size) * frame_count, raster.colors.shape[1])),
                          np.array((size[0], size[1] * frame_count)),
                          raster.mode,
                          mask.reshape((np.product(size) * frame_count)),
                          name=raster.name)
+
+
+def crop(raster, coords, size):
+    channel_count = Raster.channel_depth[raster.mode]
+    x, y = coords
+    w, h = size
+
+    if x + w > raster.shape[0] or y + h > raster.shape[1]:
+        raise ValueError
+
+    data = raster.get_tiered()
+    colors = data[x:x + w, y:y+h, 0:channel_count].reshape((np.product((w, h)), channel_count))
+    mask = data[x:x + w, y:y+h, channel_count].reshape((np.product((w, h))))
+
+    return Raster.Raster(colors, (w, h), raster.mode, mask, name=raster.name)

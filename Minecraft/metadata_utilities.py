@@ -302,7 +302,10 @@ def image_cluster(template_image):
         # Clustering algorithm
         layer_map = analyze.cluster(template_image, sections)
 
+    layer_map = np.array(layer_map).astype(int)
+
     image_clusters = filter_raster.layer_decomposite(template_image, layer_map)
+
     return filter_raster.merge_similar(image_clusters, layer_map=layer_map)
 
 
@@ -398,12 +401,25 @@ def resource_cluster_correspondence(template_filename, resource_pack_path, file_
     template_image = Raster.from_path(template_name, 'RGBA')
     print(template_image.name)
 
-    template_image = filter_raster.frame_resize(template_image, ast.literal_eval(template_metadata_json['shape']))
-    template_image.get_image().save("C:\\Users\mike_000\Pictures\image.png")
-    resource_clusters, resource_guide = image_cluster(template_image)
+    width_squared = (template_image.shape[0], template_image.shape[0])
+    default_shape = ast.literal_eval(template_metadata_json['shape'])
 
-    resource_guide = np.reshape(resource_guide, template_image.shape)
-    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(template_image.shape)
+    try:
+        template_image = filter_raster.crop(template_image, (0, 0), width_squared)
+    except ValueError:
+        pass
+
+    resource_clusters, resource_guide = image_cluster(template_image)
+    resource_guide = np.reshape(resource_guide, width_squared)
+
+    resource_guide_resized = []
+    for coord_x in np.linspace(0, template_image.shape[0] - 1, default_shape[0]).astype(int):
+        for coord_y in np.linspace(0, template_image.shape[1] - 1, default_shape[1]).astype(int):
+            resource_guide_resized.append(resource_guide[coord_x, coord_y])
+
+    # Resize to match default shape
+    resource_guide = np.array(resource_guide_resized)
+    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(default_shape)
 
     segment_metalist = []
     for ident, segment in enumerate(resource_clusters):
@@ -422,16 +438,16 @@ def resource_cluster_correspondence(template_filename, resource_pack_path, file_
         default_guide_binary.append(np.equal(default_guide, ident))
 
     shape = list(ast.literal_eval(template_metadata_json['shape']))
-    print(shape)
-    print(len(shape))
+    print(str(len(resource_guide_binary)) + str(len(default_guide_binary)))
+    print(str(len(segment_metalist)) + str(len(default_segment_metalist)))
 
-    flow_matrix = np.zeros((len(segment_metalist), len(default_segment_metalist)))
-    for coord_x, cluster_res in enumerate(segment_metalist):
-        for coord_y, cluster_def in enumerate(default_segment_metalist):
-            if match(cluster_res, cluster_def, resource_guide_binary[coord_x], default_guide_binary[coord_y], shape):
+    flow_matrix = np.zeros((len(resource_guide_binary), len(default_guide_binary)))
+    for coord_x, guide_res in enumerate(resource_guide_binary):
+        for coord_y, guide_def in enumerate(default_guide_binary):
+            if match(segment_metalist[coord_x], default_segment_metalist[coord_y], guide_res, guide_def, shape):
                 flow_matrix[coord_x, coord_y] = True
 
-    return flow_matrix, resource_guide
+    return flow_matrix.astype(int), resource_guide
 
 
 def match(data_a, data_b, guide_a, guide_b, shape):
@@ -460,8 +476,8 @@ def match(data_a, data_b, guide_a, guide_b, shape):
 
     # Calculate euclidean distance
     proximity = np.sqrt(np.sum(np.square(np.absolute(mean_point_a - mean_point_b))))
-
-    if math.pow(3, 1/np.prod(shape)) < proximity:
+    print(proximity)
+    if np.prod(shape) < proximity:
         return False
 
     return True

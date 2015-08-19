@@ -137,7 +137,6 @@ class MinecraftSynthesizer:
 
         # key_dict = image_utilities.template_reader(template_paths, image_graph)
         for resource_template in template_paths:
-            print(type(resource_template))
 
             resource_binding = {}
             try:
@@ -146,7 +145,6 @@ class MinecraftSynthesizer:
                 resource_binding['cluster_map'] = str(resource_guide)
                 resource_binding['flow_matrix'] = flow_matrix.tolist()
 
-                print(resource_binding)
                 path_binding = self.resource_bindings + '\\' + os.path.split(resource_template)[1] + '.json'
 
                 with open(path_binding, 'w') as json_binding:

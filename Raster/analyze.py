@@ -85,6 +85,6 @@ def cluster(raster, pieces):
 
             # If clustering is non-convergent, return single cluster
             if pieces == 0:
-                return np.zeros(np.product(raster.shape), 1)
+                return np.zeros(np.product(raster.shape))
 
     return labels.reshape(raster.with_alpha().shape)[:, 0]
