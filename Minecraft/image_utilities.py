@@ -1,14 +1,11 @@
 import os
 import json
-import ast
 from networkx.algorithms.components.connected import connected_components
 
 from shutil import copy
 
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
-
-from Minecraft.metadata_utilities import image_cluster
 
 import numpy as np
 np.set_printoptions(precision=2, linewidth=1000)
@@ -151,25 +148,3 @@ def apply_template(image, json_data, template_json_data):
         altered_pieces.append(staged_image)
 
     return filter.composite(altered_pieces)
-
-
-def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
-    try:
-        group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
-        template_metadata_json = json.loads(
-            open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
-    except FileNotFoundError:
-        return
-
-    template_name = resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
-    template_image = Raster.from_path(template_name, 'RGBA')
-    print(template_image.name)
-
-    template_image = filter.frame_resize(template_image, ast.literal_eval(template_metadata_json['shape']))
-    template_image.get_image().save("C:\\Users\mike_000\Pictures\image.png")
-    resource_clusters, resource_guide = image_cluster(template_image)
-
-    resource_guide = np.reshape(resource_guide, template_image.shape)
-    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(template_image.shape)
-
-    return

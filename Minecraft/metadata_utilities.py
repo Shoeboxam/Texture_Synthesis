@@ -1,4 +1,5 @@
 import os
+import math
 import json
 import colorsys
 
@@ -268,8 +269,10 @@ def file_metadata(output_directory, template_directory, source_directory, image_
 
         # Analyze each cluster
         segment_metalist = []
-        for segment, template_segment in zip(image_clusters, templ_clusters):
-            segment_metalist.append(analyze_image(segment, template_segment, sections))
+        for ident, (segment, template_segment) in enumerate(zip(image_clusters, templ_clusters)):
+            segment_data = analyze_image(segment, template_segment, sections)
+            segment_data['id'] = ident
+            segment_metalist.append(segment_data)
 
         meta_dict = {
             'group_name': template_name,
@@ -295,7 +298,6 @@ def image_cluster(template_image):
 
     if sections < 2:
         layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
-        sections = 1
     else:
         # Clustering algorithm
         layer_map = analyze.cluster(template_image, sections)
@@ -320,8 +322,10 @@ def template_process(template_queue, template_directory, home):
 
         # Analyze each cluster, save to list of dicts
         segment_metalist = []
-        for segment in image_clusters:
-            segment_metalist.append(analyze_image(segment, granularity=sections))
+        for ident, segment in enumerate(image_clusters):
+            cluster_data = analyze_image(segment, granularity=sections)
+            cluster_data['id'] = ident
+            segment_metalist.append(cluster_data)
 
         meta_dict = {
             'group_name': template_name.replace(home, ''),
@@ -382,3 +386,82 @@ def analyze_image(image, template=None, granularity=10):
         data['equivalent'] = equivalent
 
     return data
+
+
+def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
+
+    group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+    template_metadata_json = json.loads(
+        open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
+
+    template_name = resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
+    template_image = Raster.from_path(template_name, 'RGBA')
+    print(template_image.name)
+
+    template_image = filter_raster.frame_resize(template_image, ast.literal_eval(template_metadata_json['shape']))
+    template_image.get_image().save("C:\\Users\mike_000\Pictures\image.png")
+    resource_clusters, resource_guide = image_cluster(template_image)
+
+    resource_guide = np.reshape(resource_guide, template_image.shape)
+    default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(template_image.shape)
+
+    segment_metalist = []
+    for ident, segment in enumerate(resource_clusters):
+        segment_data = analyze_image(segment, granularity=len(resource_clusters))
+        segment_data['id'] = ident
+        segment_metalist.append(segment_data)
+
+    default_segment_metalist = template_metadata_json['segment_dicts']
+
+    resource_guide_binary = []
+    for ident in range(max(resource_guide.flatten()) + 1):
+        resource_guide_binary.append(np.equal(resource_guide, ident))
+
+    default_guide_binary = []
+    for ident in range(max(default_guide.flatten()) + 1):
+        default_guide_binary.append(np.equal(default_guide, ident))
+
+    shape = list(ast.literal_eval(template_metadata_json['shape']))
+    print(shape)
+    print(len(shape))
+
+    flow_matrix = np.zeros((len(segment_metalist), len(default_segment_metalist)))
+    for coord_x, cluster_res in enumerate(segment_metalist):
+        for coord_y, cluster_def in enumerate(default_segment_metalist):
+            if match(cluster_res, cluster_def, resource_guide_binary[coord_x], default_guide_binary[coord_y], shape):
+                flow_matrix[coord_x, coord_y] = True
+
+    return flow_matrix, resource_guide
+
+
+def match(data_a, data_b, guide_a, guide_b, shape):
+    if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > .2:
+        return False
+    if abs(math_utilities.linear_mean(data_a['sats']) - math_utilities.linear_mean(data_b['sats'])) > .5:
+        return False
+    if abs(data_a['lightness'] - data_b['lightness']) > .5:
+        return False
+
+    # Clusters must be near each other
+    points_a = []
+    for coord_x, column in enumerate(guide_a.reshape(shape)):
+        for coord_y, value in enumerate(column):
+            if value:
+                points_a.append((coord_x, coord_y))
+
+    points_b = []
+    for coord_x, column in enumerate(guide_b.reshape(shape)):
+        for coord_y, value in enumerate(column):
+            if value:
+                points_b.append((coord_x, coord_y))
+
+    mean_point_a = np.sum(np.array(points_a).T, axis=1)
+    mean_point_b = np.sum(np.array(points_b).T, axis=1)
+
+    # Calculate euclidean distance
+    proximity = np.sqrt(np.sum(np.square(np.absolute(mean_point_a - mean_point_b))))
+
+    if math.pow(3, 1/np.prod(shape)) < proximity:
+        return False
+
+    return True

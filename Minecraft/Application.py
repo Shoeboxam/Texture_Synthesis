@@ -2,10 +2,10 @@ from Minecraft import file_utilities, image_utilities, web_utilities, metadata_u
 
 import json
 from os.path import normpath, expanduser
-import os, sys
+import os
 import shutil
-from itertools import chain
 from networkx import connected_component_subgraphs
+
 
 class MinecraftSynthesizer:
 
@@ -25,6 +25,7 @@ class MinecraftSynthesizer:
 
         self.template_metadata = self.home + '\\metadata\\templates\\'
         self.file_metadata = self.home + '\\metadata\\mappings\\'
+        self.resource_bindings = self.home + '\\metadata\\bindings\\'
         self.image_network_path = self.home + '\\metadata\\image_graph.json'
 
         self.output_path = self.home + '\\output\\synthesized_resources\\'
@@ -68,21 +69,21 @@ class MinecraftSynthesizer:
     def update_metadata(self):
 
         # Weakly group images to partition image set size- crucial optimization step
-        if os.path.exists(self.home + '//metadata//preprocess.json'):
-            clumped_paths = json.loads(open(self.home + '//metadata//preprocess.json').read())
-            # clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
-        else:
-            clumped_paths = metadata_utilities.image_hash(self.default_patches)
-        print("Hashed source images")
-
-        with open(self.home + '//metadata//preprocess.json', 'w') as json_file:
-            json.dump(clumped_paths, json_file)
+        # if os.path.exists(self.home + '//metadata//preprocess.json'):
+        #     clumped_paths = json.loads(open(self.home + '//metadata//preprocess.json').read())
+        #     # clumped_paths = metadata_utilities.image_hash(self.default_patches, init=clumped_paths)
+        # else:
+        #     clumped_paths = metadata_utilities.image_hash(self.default_patches)
+        # print("Hashed source images")
+        #
+        # with open(self.home + '//metadata//preprocess.json', 'w') as json_file:
+        #     json.dump(clumped_paths, json_file)
 
         # Combinatorial image grouping to graph
         image_graph = metadata_utilities.load_graph(self.image_network_path)
 
-        total = len(list(chain(*clumped_paths.values())))
-        counter = 0.
+        # total = len(list(chain(*clumped_paths.values())))
+        # counter = 0.
 
         # for image_paths in clumped_paths.values():
         #     counter += len(image_paths)
@@ -96,10 +97,10 @@ class MinecraftSynthesizer:
         #         image_graph.add_node(image_paths[0])
         #
         # metadata_utilities.save_graph(self.image_network_path, image_graph)
-        print("Updated image graph.")
+        # print("Updated image graph.")
 
         # Create informational json files for templates and files
-        metadata_utilities.template_metadata(self.template_metadata, self.default_patches, image_graph)
+        # metadata_utilities.template_metadata(self.template_metadata, self.default_patches, image_graph)
         metadata_utilities.file_metadata(self.file_metadata, self.template_metadata, self.default_patches, image_graph)
         print("Created JSON metadata files.")
 
@@ -113,7 +114,7 @@ class MinecraftSynthesizer:
 
         def template_selection(paths):
             for node in paths:
-                if os.path.exists(self.resource_pack + '\\' +  os.path.join(*(node.split(os.path.sep)[1:]))):
+                if os.path.exists(self.resource_pack + '\\' + os.path.join(*(node.split(os.path.sep)[1:]))):
                     template_paths.append(node)
                     return
 
@@ -131,10 +132,28 @@ class MinecraftSynthesizer:
             self.untextured_patches, self.resource_pack, template_paths, self.template_metadata)
         print("Wrote additions to templates.")
 
+        if not os.path.exists(self.resource_bindings):
+            os.mkdir(self.resource_bindings)
+
         # key_dict = image_utilities.template_reader(template_paths, image_graph)
         for resource_template in template_paths:
-            image_utilities.resource_cluster_correspondence(
-                resource_template, self.resource_pack, self.file_metadata, self.template_metadata)
+            print(type(resource_template))
+
+            resource_binding = {}
+            try:
+                flow_matrix, resource_guide = metadata_utilities.resource_cluster_correspondence(
+                    resource_template, self.resource_pack, self.file_metadata, self.template_metadata)
+                resource_binding['cluster_map'] = str(resource_guide)
+                resource_binding['flow_matrix'] = flow_matrix.tolist()
+
+                print(resource_binding)
+                path_binding = self.resource_bindings + '\\' + os.path.split(resource_template)[1] + '.json'
+
+                with open(path_binding, 'w') as json_binding:
+                    json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
+
+            except FileNotFoundError:
+                continue
 
         # Converts json files to images with templates
         image_utilities.populate_images(
