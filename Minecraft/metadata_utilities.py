@@ -1,7 +1,7 @@
 import os
-import math
 import json
-import colorsys
+import time
+import ast
 
 import networkx
 from networkx.algorithms.components.connected import connected_components, connected_component_subgraphs
@@ -10,16 +10,18 @@ from networkx.readwrite import json_graph
 from itertools import combinations, chain
 from collections import defaultdict
 
+import colorsys
+
 from Raster.Raster import Raster
 from Raster import math_utilities, analyze
 from Raster import filter as filter_raster
 
 import numpy as np
+from scipy.spatial.distance import euclidean
+
 from multiprocessing import Process, Queue, cpu_count, Lock
 from multiprocessing.managers import BaseManager, DictProxy
-import time
 
-import ast
 
 
 class DictManager(BaseManager):
@@ -438,8 +440,8 @@ def resource_cluster_correspondence(template_filename, resource_pack_path, file_
         default_guide_binary.append(np.equal(default_guide, ident))
 
     shape = list(ast.literal_eval(template_metadata_json['shape']))
-    print(str(len(resource_guide_binary)) + str(len(default_guide_binary)))
-    print(str(len(segment_metalist)) + str(len(default_segment_metalist)))
+    # print(str(len(resource_guide_binary)) + str(len(default_guide_binary)))
+    # print(str(len(segment_metalist)) + str(len(default_segment_metalist)))
 
     flow_matrix = np.zeros((len(resource_guide_binary), len(default_guide_binary)))
     for coord_x, guide_res in enumerate(resource_guide_binary):
@@ -471,13 +473,24 @@ def match(data_a, data_b, guide_a, guide_b, shape):
             if value:
                 points_b.append((coord_x, coord_y))
 
-    mean_point_a = np.sum(np.array(points_a).T, axis=1)
-    mean_point_b = np.sum(np.array(points_b).T, axis=1)
+    try:
+        mean_point_a = (np.average(np.array(points_a)[:, 0]), np.average(np.array(points_a)[:, 1]))
+        mean_point_b = (np.average(np.array(points_b)[:, 0]), np.average(np.array(points_b)[:, 1]))
+    except IndexError:
+        print("Indice overflow")
+        return False
+    print(str(mean_point_a))
+    print(str(mean_point_b))
 
     # Calculate euclidean distance
-    proximity = np.sqrt(np.sum(np.square(np.absolute(mean_point_a - mean_point_b))))
-    print(proximity)
-    if np.prod(shape) < proximity:
+    proximity = euclidean(mean_point_a, mean_point_b)
+    allowance = np.sqrt(np.prod(shape) * np.average((np.var(points_a), np.var(points_b)))) / 7
+
+    print('Proximity: ' + str(proximity))
+    print('Allowance: ' + str(allowance))
+
+    if proximity > allowance:
         return False
 
+    print('Match')
     return True

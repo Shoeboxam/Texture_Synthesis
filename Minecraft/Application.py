@@ -25,7 +25,7 @@ class MinecraftSynthesizer:
 
         self.template_metadata = self.home + '\\metadata\\templates\\'
         self.file_metadata = self.home + '\\metadata\\mappings\\'
-        self.resource_bindings = self.home + '\\metadata\\bindings\\'
+        self.bindings_metadata = self.home + '\\metadata\\bindings\\'
         self.image_network_path = self.home + '\\metadata\\image_graph.json'
 
         self.output_path = self.home + '\\output\\synthesized_resources\\'
@@ -132,8 +132,8 @@ class MinecraftSynthesizer:
             self.untextured_patches, self.resource_pack, template_paths, self.template_metadata)
         print("Wrote additions to templates.")
 
-        if not os.path.exists(self.resource_bindings):
-            os.mkdir(self.resource_bindings)
+        if not os.path.exists(self.bindings_metadata):
+            os.mkdir(self.bindings_metadata)
 
         # key_dict = image_utilities.template_reader(template_paths, image_graph)
         for resource_template in template_paths:
@@ -144,8 +144,9 @@ class MinecraftSynthesizer:
                     resource_template, self.resource_pack, self.file_metadata, self.template_metadata)
                 resource_binding['cluster_map'] = str(resource_guide)
                 resource_binding['flow_matrix'] = flow_matrix.tolist()
+                resource_binding['relative_path'] = resource_template
 
-                path_binding = self.resource_bindings + '\\' + os.path.split(resource_template)[1] + '.json'
+                path_binding = self.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
 
                 with open(path_binding, 'w') as json_binding:
                     json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
@@ -155,7 +156,7 @@ class MinecraftSynthesizer:
 
         # Converts json files to images with templates
         image_utilities.populate_images(
-            self.default_patches, self.template_metadata, self.file_metadata, self.output_path)
+            self.default_patches, self.bindings_metadata, self.file_metadata, self.output_path)
 
 
 if __name__ == '__main__':
