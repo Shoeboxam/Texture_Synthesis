@@ -24,7 +24,9 @@ class Settings:
         self.template_metadata = self.home + '\\metadata\\templates\\'
         self.file_metadata = self.home + '\\metadata\\mappings\\'
         self.bindings_metadata = self.home + '\\metadata\\bindings\\'
-        self.image_network_path = self.home + '\\metadata\\image_graph.json'
+
+        self.image_preprocess = self.home + '\\metadata\\preprocess.json'
+        self.image_network = self.home + '\\metadata\\image_graph.json'
 
         self.output_path = self.home + '\\output\\synthesized_resources\\'
 

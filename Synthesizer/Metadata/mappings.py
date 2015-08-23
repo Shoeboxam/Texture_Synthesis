@@ -9,14 +9,14 @@ from Raster.Raster import Raster
 from Synthesizer.images import analyze_image
 
 
-def metadata_mappings(output_directory, template_directory, source_directory, image_graph, sections=3):
+def metadata_mappings(paths, image_graph, sections=3):
     """Save representative data to json files in meta pack"""
-    if not os.path.exists(template_directory):
-        os.makedirs(template_directory)
+    if not os.path.exists(paths.template_metadata):
+        os.makedirs(paths.template_metadata)
 
     template_data = {}
-    for json_filename in os.listdir(template_directory):
-        with open(template_directory + json_filename, 'r') as json_file:
+    for json_filename in os.listdir(paths.template_metadata):
+        with open(paths.template_metadata + json_filename, 'r') as json_file:
             json_data = json.load(json_file)
             template_data[json_data['group_name']] = json_data
 
@@ -24,18 +24,18 @@ def metadata_mappings(output_directory, template_directory, source_directory, im
     keys = {}
     for bunch in [i for i in connected_components(image_graph) if len(i) > 1]:
         for node in bunch:
-            Raster.from_path(source_directory + node, 'RGBA')
-            keys[node] = image_graph.node[node]['group_name'], Raster.from_path(source_directory + node, 'RGBA')
+            Raster.from_path(paths.default_patches + node, 'RGBA')
+            keys[node] = image_graph.node[node]['group_name'], Raster.from_path(paths.default_patches + node, 'RGBA')
 
     # Iterate through each file that is part of the key
     for key, (template_name, default_image) in keys.items():
 
         # Load corresponding cluster map
         try:
-            with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
+            with open(paths.template_metadata + "\\" + os.path.split(template_name)[1] + ".json", 'r') as config:
                 layer_map = ast.literal_eval(json.load(config)['cluster_map'])
         except FileNotFoundError:
-            print("Could not find: " + template_directory + "\\" + os.path.split(template_name)[1] + ".json")
+            print("Could not find: " + paths.template_metadata + "\\" + os.path.split(template_name)[1] + ".json")
             continue
 
         # Use corresponding cluster map to break image into pieces
@@ -44,7 +44,7 @@ def metadata_mappings(output_directory, template_directory, source_directory, im
         except ValueError:
             continue
         templ_clusters = filter_raster.layer_decomposite(
-            Raster.from_path(source_directory + template_name, 'RGBA'), layer_map)
+            Raster.from_path(paths.default_patches + template_name, 'RGBA'), layer_map)
 
         # Analyze each cluster
         segment_metalist = []
@@ -58,7 +58,7 @@ def metadata_mappings(output_directory, template_directory, source_directory, im
             'segment_dicts': segment_metalist
         }
 
-        output_path = os.path.split(output_directory + key)[0]
+        output_path = os.path.split(paths.file_metadata + key)[0]
 
         # Create folder structure
         if not os.path.exists(output_path):

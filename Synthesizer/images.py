@@ -2,81 +2,18 @@ import colorsys
 import os
 import json
 import ast
-from networkx.algorithms.components.connected import connected_components
-
-from shutil import copy
-
-from Raster.Raster import Raster
-from Raster import filters, math_utilities, analyze, filters, filters
-
-import Synthesizer
 
 import numpy as np
+
+from Raster.Raster import Raster
+from Raster import math_utilities, analyze, filters
+
 np.set_printoptions(precision=2, linewidth=1000)
 
 
-def prepare_templates(default_pack, resource_pack, path_list, template_directory):
-    if not os.path.exists(template_directory):
-        os.mkdir(template_directory)
-        os.mkdir(template_directory + '\\default\\')
-        os.mkdir(template_directory + '\\resource\\')
+def populate_images(paths):
 
-    for path in path_list:
-        if os.path.exists(resource_pack + path):
-            copy(default_pack + path, template_directory + '\\default\\' + os.path.split(path)[1])
-            copy(resource_pack + path, template_directory + '\\resource\\' + os.path.split(path)[1])
-
-
-def template_reader(template_paths, image_graph):
-    """Uses the image graph to create a dict of targets"""
-    split_vec = np.vectorize(os.path.split)
-    image_keys_list = zip(np.array(split_vec(template_paths))[:, 1], connected_components(image_graph))
-
-    image_keys = {}
-
-    for template, targets in image_keys_list:
-        for node in targets:
-            image_keys[template] = node
-
-    print(image_keys)
-    return image_keys
-
-
-def best_match(graph, resource_pack):
-    template_listing = []
-
-    def best_existing(bunch_examine):
-        for node in bunch_examine:
-            if os.path.exists(resource_pack + '\\' + node):
-                return node
-        return None
-
-    for bunch in graph:
-        match = best_existing(bunch)
-        if match is not None:
-            template_listing.append(match)
-
-    return template_listing
-
-
-def list_templates(template_path):
-    """Returns a list of names of key-value template image pairs"""
-    matches = []
-    keys = os.listdir(template_path + '\\keys\\')
-    values = os.listdir(template_path + '\\values\\')
-
-    for filename_default, filename_replacer in zip(keys, values):
-        if filename_default == filename_replacer:
-            matches.append(filename_default)
-        else:
-            print("Incomplete template pairing: " + filename_default)
-
-    return matches
-
-
-def populate_images(source_files, bindings_directory, metadata_pack, output_path):
-
-    for root, folders, files in os.walk(metadata_pack):
+    for root, folders, files in os.walk(paths.file_metadata):
         for image_file in files:
             full_path = os.path.join(root, image_file)
 
@@ -86,8 +23,8 @@ def populate_images(source_files, bindings_directory, metadata_pack, output_path
                 try:
                     mapping_data = json.load(json_file)
                     binding_data = json.load(
-                        bindings_directory + '//' + os.path.split(mapping_data['group_name'])[1] + '.json')
-                    template = Raster.from_path(source_files + '//' + mapping_data['group_name'], 'RGBA')
+                        paths.bindings_metadata + '//' + os.path.split(mapping_data['group_name'])[1] + '.json')
+                    template = Raster.from_path(paths.default_patches + '//' + mapping_data['group_name'], 'RGBA')
                 except IOError:
                     print('IOError: skipping map')
                     continue
@@ -97,7 +34,7 @@ def populate_images(source_files, bindings_directory, metadata_pack, output_path
                 output_image = apply_template(template, mapping_data, binding_data)
 
                 # Output/save image
-                full_path_output = full_path.replace(metadata_pack, output_path).replace('.json', '')
+                full_path_output = str(full_path).replace(paths.file_metadata, paths.output_path).replace('.json', '')
 
                 if not os.path.exists(os.path.split(full_path_output)[0]):
                     os.makedirs(os.path.split(full_path_output)[0])
@@ -129,7 +66,8 @@ def apply_template(image, json_data, binding_json_data):
                 layer_count = len(cluster_data['hues'])*2
                 components = filters.value_decomposite(staged_image, layer_count)
 
-                sat_poly_raw = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
+                sat_poly_raw = math_utilities.polyfit(
+                    np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
 
                 sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
                 linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
@@ -190,9 +128,9 @@ def image_cluster(template_image):
 
     layer_map = np.array(layer_map).astype(int)
 
-    image_clusters = filter_raster.layer_decomposite(template_image, layer_map)
+    image_clusters = filters.layer_decomposite(template_image, layer_map)
 
-    return filter_raster.merge_similar(image_clusters, layer_map=layer_map)
+    return filters.merge_similar(image_clusters, layer_map=layer_map)
 
 
 def analyze_image(image, template=None, granularity=10):

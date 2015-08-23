@@ -1,31 +1,34 @@
 import json
 import os
+from shutil import copy
 import time
+
 from networkx import connected_components
+
 from Raster.Raster import Raster
 from Synthesizer.images import image_cluster, analyze_image
 from Synthesizer.Metadata.network import connectivity_sort
 from Utilities.vectorize import vectorize
 
 
-def metadata_templates(template_directory, source_directory, image_graph):
+def metadata_templates(paths, image_graph):
     """Generate template json files with spectral cluster maps"""
 
     template_listing = []
     for bunch in connected_components(image_graph):
         bunch = connectivity_sort(bunch, image_graph)[0]
-        first_image = Raster.from_path(source_directory + bunch, 'RGBA')
+        first_image = Raster.from_path(paths.default_patches + bunch, 'RGBA')
 
         if first_image.shape != (16, 16):
             # TODO: Perfect place to tie in GUI generator
             continue
 
         try:
-            template_listing.append(source_directory + image_graph.node[bunch]['group_name'])
+            template_listing.append(paths.default_patches + image_graph.node[bunch]['group_name'])
         except KeyError:
             continue
 
-    vectorize(template_listing, template_process, (template_directory, source_directory))
+    vectorize(template_listing, template_process, (paths.template_metadata, paths.default_patches))
 
 
 def template_process(template_queue, template_directory, home):
