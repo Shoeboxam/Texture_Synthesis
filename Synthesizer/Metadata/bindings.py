@@ -10,14 +10,43 @@ from Raster.Raster import Raster
 from Raster import math_utilities, filters
 from Synthesizer.images import image_cluster, analyze_image
 
+from Utilities.vectorize import vectorize
 
-def resource_cluster_correspondence(template_filename, resource_pack_path, file_metadata_path, template_metadata_path):
 
-    group_name = json.loads(open(file_metadata_path + '\\' + template_filename + '.json', 'r').read())['group_name']
+def build(paths, template_paths):
+    """Generate all bindings"""
+    if not os.path.exists(paths.bindings_metadata):
+        os.mkdir(paths.bindings_metadata)
+
+    vectorize(template_paths, make_binding, paths)
+
+
+def make_binding(resource_template, paths):
+    """Bind a single template"""
+    resource_binding = {}
+    try:
+        flow_matrix, resource_guide = resource_cluster_correspondence(paths, resource_template)
+        resource_binding['cluster_map'] = str(resource_guide)
+        resource_binding['flow_matrix'] = flow_matrix.tolist()
+        resource_binding['relative_path'] = resource_template
+
+        path_binding = paths.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
+
+        with open(path_binding, 'w') as json_binding:
+            json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
+
+    except FileNotFoundError:
+        pass
+
+
+def resource_cluster_correspondence(paths, template_filename):
+
+    full_template_path = paths.metadata_mappings + '\\' + template_filename + '.json'
+    group_name = json.loads(open(full_template_path, 'r').read())['group_name']
     template_metadata_json = json.loads(
-        open(template_metadata_path + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
+        open(paths.template_metadata + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
 
-    template_name = resource_pack_path + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
+    template_name = paths.resource_pack + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
     template_image = Raster.from_path(template_name, 'RGBA')
     print(template_image.name)
 
@@ -33,8 +62,8 @@ def resource_cluster_correspondence(template_filename, resource_pack_path, file_
     resource_guide = np.reshape(resource_guide, width_squared)
 
     resource_guide_resized = []
-    for coord_x in np.linspace(0, template_image.shape[0] - 1, default_shape[0]).astype(int):
-        for coord_y in np.linspace(0, template_image.shape[1] - 1, default_shape[1]).astype(int):
+    for coord_x in np.array(np.linspace(0, template_image.shape[0] - 1, default_shape[0])).astype(int):
+        for coord_y in np.array(np.linspace(0, template_image.shape[1] - 1, default_shape[1])).astype(int):
             resource_guide_resized.append(resource_guide[coord_x, coord_y])
 
     # Resize to match default shape
@@ -112,25 +141,3 @@ def match(data_a, data_b, guide_a, guide_b, shape):
 
     print('Match')
     return True
-
-
-
-def binding_process(template_path, resource_pack, file_metadata, template_metadata, bindings_metadata):
-
-
-def create_binding():
-    resource_binding = {}
-    try:
-        flow_matrix, resource_guide = resource_cluster_correspondence(
-            resource_template, resource_pack, metadata_mappings, metadata_templates)
-        resource_binding['cluster_map'] = str(resource_guide)
-        resource_binding['flow_matrix'] = flow_matrix.tolist()
-        resource_binding['relative_path'] = resource_template
-
-        path_binding = self.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
-
-        with open(path_binding, 'w') as json_binding:
-            json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
-
-    except FileNotFoundError:
-        continue

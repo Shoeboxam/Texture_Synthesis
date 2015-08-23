@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from Raster import Raster, filters, analyze
 from Raster.math_utilities import *
 
-from Synthesizer import images, Sources
+from Synthesizer import images, sources
 
 
 def smooth_point():
@@ -56,7 +56,7 @@ def clusterator():
 
 def templater():
     texture_directory = r"C:\Users\mike_000\Desktop\textures"
-    Sources.resource_filter(texture_directory)
+    sources.resource_filter(texture_directory)
 
     raster_dictionary = images.load_directory(texture_directory)
 

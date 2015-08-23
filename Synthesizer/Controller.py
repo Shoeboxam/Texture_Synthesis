@@ -6,14 +6,16 @@ from networkx import connected_component_subgraphs
 from Synthesizer import images, metadata
 from Synthesizer.settings import Settings
 
-import Synthesizer.Metadata.templates as templates
-import Synthesizer.Metadata.network as network
-import Synthesizer.Metadata.mappings as mappings
+import Synthesizer.metadata.templates as templates
+import Synthesizer.metadata.network as network
+import Synthesizer.metadata.mappings as mappings
+import Synthesizer.metadata.bindings as bindings
 
 import json
 
 
-def update_metadata(paths):
+def global_metadata(paths):
+    """Generate metadata for default graphics"""
 
     # Weakly group images to partition image set size- crucial optimization step
     if os.path.exists(paths.image_preprocess):
@@ -46,13 +48,13 @@ def update_metadata(paths):
     print("Updated image graph.")
 
     # Create informational json files for templates and files
-    templates.metadata_templates(paths, image_graph)
-    mappings.metadata_mappings(paths, image_graph)
+    templates.build(paths, image_graph)
+    mappings.build(paths, image_graph)
     print("Created JSON metadata files.")
 
 
-def synthesize(paths):
-    """Extract representative colors for every image that matches template"""
+def local_metadata(paths):
+    """Generate metadata specific to given resource pack"""
 
     # Update template directory
     image_graph = network.load_graph(paths.home + '\\metadata\\image_graph.json')
@@ -75,11 +77,10 @@ def synthesize(paths):
 
     print(str(len(template_paths)) + ' templates identified.')
 
-    if not os.path.exists(paths.bindings_metadata):
-        os.mkdir(paths.bindings_metadata)
+    bindings.build(paths, template_paths)
 
-    # key_dict = image_utilities.template_reader(template_paths, image_graph)
 
+def synthesize(paths):
     # Converts json files to images with templates
     images.populate_images(paths)
 

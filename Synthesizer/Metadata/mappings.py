@@ -9,7 +9,7 @@ from Raster.Raster import Raster
 from Synthesizer.images import analyze_image
 
 
-def metadata_mappings(paths, image_graph, sections=3):
+def build(paths, image_graph, sections=3):
     """Save representative data to json files in meta pack"""
     if not os.path.exists(paths.template_metadata):
         os.makedirs(paths.template_metadata)

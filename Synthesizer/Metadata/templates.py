@@ -1,17 +1,16 @@
 import json
 import os
-from shutil import copy
 import time
 
 from networkx import connected_components
 
 from Raster.Raster import Raster
 from Synthesizer.images import image_cluster, analyze_image
-from Synthesizer.Metadata.network import connectivity_sort
+from Synthesizer.metadata.network import connectivity_sort
 from Utilities.vectorize import vectorize
 
 
-def metadata_templates(paths, image_graph):
+def build(paths, image_graph):
     """Generate template json files with spectral cluster maps"""
 
     template_listing = []
@@ -28,10 +27,10 @@ def metadata_templates(paths, image_graph):
         except KeyError:
             continue
 
-    vectorize(template_listing, template_process, (paths.template_metadata, paths.default_patches))
+    vectorize(template_listing, make_template, (paths.template_metadata, paths.default_patches))
 
 
-def template_process(template_queue, template_directory, home):
+def make_template(template_queue, template_directory, home):
     while True:
         time.sleep(1)
         template_name = template_queue.get()

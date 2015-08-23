@@ -2,7 +2,7 @@ import json
 from os.path import normpath, expanduser
 from os import makedirs
 
-from Synthesizer.Sources import web
+from Synthesizer.sources import web
 
 
 class Settings:
