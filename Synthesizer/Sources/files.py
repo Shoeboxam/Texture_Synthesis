@@ -2,7 +2,32 @@ import zipfile
 import os
 from distutils.dir_util import copy_tree
 
-from shutil import rmtree, copy2
+from shutil import rmtree, copy2, copy
+
+
+def create_default(paths):
+    """Creates a default texture pack in mod repository format"""
+
+    # Create staging pack
+    extract_files(paths.mods_directory, paths.default_patches)
+    copy(os.path.normpath(paths.vanilla_pack), paths.default_patches + '\\minecraft\\')
+    print('Unpacked mods')
+
+    resource_filter(paths.default_patches)
+    print('Isolated image files')
+
+    repository_format(paths.default_patches, paths.repository_patches, paths.key_repository)
+    print('Extracted repository matches')
+
+
+def create_untextured(paths):
+    """Creates a pack of untextured files in mod repository format"""
+
+    # Gets a list of textures that have not been made via file diff
+    untextured_paths = get_untextured(paths.key_repository, paths.repository_patches)
+
+    # Create a pack with the untextured files
+    copy_filter(paths.default_patches, paths.untextured_patches, untextured_paths)
 
 
 def resource_filter(target_path):

@@ -2,202 +2,18 @@ import os
 import json
 import time
 import ast
-
-import networkx
-from networkx.algorithms.components.connected import connected_components, connected_component_subgraphs
-from networkx.readwrite import json_graph
-
-from itertools import combinations, chain
-from collections import defaultdict
-
 import colorsys
+from multiprocessing import Process, Queue, cpu_count
+
+from networkx.algorithms.components.connected import connected_components
+import numpy as np
+
+from scipy.spatial.distance import euclidean
 
 from Raster.Raster import Raster
 from Raster import math_utilities, analyze
 from Raster import filter as filter_raster
-
-import numpy as np
-from scipy.spatial.distance import euclidean
-
-from multiprocessing import Process, Queue, cpu_count, Lock
-from multiprocessing.managers import BaseManager, DictProxy
-
-
-
-class DictManager(BaseManager):
-    pass
-
-DictManager.register('defaultdict', defaultdict, DictProxy)
-
-
-def load_graph(path):
-    try:
-        json_data = open(path, 'r')
-        image_graph = json_graph.node_link_graph(eval(json_data.read()))
-        json_data.close()
-    except FileNotFoundError:
-        image_graph = networkx.Graph()
-    return image_graph
-
-
-def save_graph(path, graph):
-    with open(path, 'w+') as json_file:
-        json_file.write(str(json_graph.node_link_data(graph)))
-
-
-def indexing_process(path_queue, raster_lock, raster_dict, target):
-
-    def threshold(array_in, thresh=0.5):
-        array_mask = array_in.copy()
-        array_mask[array_mask > thresh] = 1.0
-        array_mask[array_mask <= thresh] = 0.0
-
-        return array_mask
-
-    while True:
-        full_path = path_queue.get()
-        try:
-            image_path = full_path.replace(target, "")
-            candidate = Raster.from_path(full_path, 'RGBA')
-            image_hash_id = ''.join(char for char in np.array_str(threshold(candidate.mask)) if char.isdigit())
-
-            # Categorize images by thresholded layer mask
-            with raster_lock:
-                listobj = raster_dict[image_hash_id]
-                listobj.append(image_path)
-                raster_dict[image_hash_id] = listobj
-
-        except OSError:
-            continue
-
-
-def image_hash(target, init=None):
-
-    raster_dict_lock = Lock()
-    manager = DictManager()
-    manager.start()
-    raster_dict = manager.defaultdict(list)
-
-    if init is not None:
-        raster_dict = init
-
-    flat_listing = chain(*raster_dict.values())
-    file_queue = Queue()
-
-    pool = [Process(target=indexing_process, args=(file_queue, raster_dict_lock, raster_dict, target), name=str(proc))
-            for proc in range(cpu_count())]
-
-    for proc in pool:
-        proc.start()
-
-    for root, folders, files in os.walk(target):
-        for current_file in files:
-            full_path = root + "\\" + current_file
-
-            if full_path.endswith('.png') and full_path not in flat_listing:
-                file_queue.put(full_path)
-
-    while not file_queue.empty():
-        time.sleep(1)
-
-    for proc in pool:
-        proc.terminate()
-
-    return dict(raster_dict)
-
-
-def load_paths(root, paths):
-    raster_dict = {}
-
-    for path in paths:
-        if path.endswith('.png'):
-            try:
-                candidate = Raster.from_path(root + path, 'RGBA')
-
-                # Categorize images by thresholded layer mask
-                raster_dict[path.replace(root, "")] = candidate
-
-            except OSError:
-                continue
-
-    return raster_dict
-
-
-def network_prune(network, raster_dict):
-    raster_dict_flat = {}
-    for image_grouping in raster_dict.values():
-        raster_dict_flat.update(image_grouping)
-
-    for node in network.nodes():
-        if node not in raster_dict_flat.keys():
-            network.remove_node(node)
-    return network
-
-
-def connectivity_sort(bunch, network):
-    """Returns a given bunch ordered by connectivity"""
-
-    def node_strength(node):
-        node_edges = network.edges(node, data=True)
-        if node_edges:
-            weight_total = 0
-            for weight_dict in np.array(node_edges)[..., 2]:
-                weight_total += weight_dict['weight']
-            return weight_total
-        return 0
-    return sorted(bunch, key=node_strength)
-
-
-def network_images(raster_dict, threshold=0, network=None):
-
-    if network is None:
-        network = networkx.Graph()
-    new_elements = set(raster_dict.keys()) - set(network.nodes())
-    network.add_nodes_from(new_elements)
-
-    for group_outer, group_inner in combinations(connectivity_sort(list(new_elements), network), 2):
-        correlation = analyze.correlate(
-            raster_dict[group_outer], raster_dict[group_inner])
-        if correlation > threshold:
-            # print("Matched: " + str(node_outer[0]) + ' & ' + str(node_inner[0]))
-            network.add_edge(group_inner, group_outer, weight=correlation)
-
-    # Name each bunch
-    for bunch in filter(lambda group: len(group) > 1, connected_component_subgraphs(network)):
-
-        max_node_strength = 0
-
-        # Name bunch from greatest node
-        greatest_node = None
-        name = None
-        for node in bunch.nodes():
-
-            strength = 0
-            for edge in list(bunch.edge[node].values()):
-                strength += edge['weight']
-
-            if strength > max_node_strength:
-                max_node_strength = strength
-                greatest_node = node
-
-            # Collect names while determining greatest node
-            if 'group_name' in network.node[node]:
-                name = network.node[node]['group_name']
-
-        if name is None:
-            name = greatest_node
-
-        # Apply new name to all nodes in bunch
-        for node in bunch:
-            network.node[node]['group_name'] = name
-
-    # for group in connected_components(network):
-    #     if len(group) > 1:
-    #         for node in group:
-    #             print(node)
-    #         print(" ")
-
-    return network
+from Synthesizer.Metadata.network import connectivity_sort
 
 
 def template_metadata(template_directory, source_directory, image_graph):
@@ -494,3 +310,25 @@ def match(data_a, data_b, guide_a, guide_b, shape):
 
     print('Match')
     return True
+
+
+
+def binding_process(template_path, resource_pack, file_metadata, template_metadata, bindings_metadata):
+
+
+def create_binding():
+    resource_binding = {}
+    try:
+        flow_matrix, resource_guide = resource_cluster_correspondence(
+            resource_template, resource_pack, file_metadata, template_metadata)
+        resource_binding['cluster_map'] = str(resource_guide)
+        resource_binding['flow_matrix'] = flow_matrix.tolist()
+        resource_binding['relative_path'] = resource_template
+
+        path_binding = self.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
+
+        with open(path_binding, 'w') as json_binding:
+            json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
+
+    except FileNotFoundError:
+        continue

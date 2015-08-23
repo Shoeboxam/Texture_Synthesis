@@ -2,7 +2,7 @@ from git import Repo, GitCommandError
 import urllib.request
 import os
 
-from Minecraft.file_utilities import resource_filter
+from Synthesizer.Sources import resource_filter
 
 import zipfile
 # from scrapy import Spider, Item, Field, Selector, Request

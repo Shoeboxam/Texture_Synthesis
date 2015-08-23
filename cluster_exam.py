@@ -1,5 +1,5 @@
 from Raster import filter, Raster
-from Minecraft.metadata_utilities import analyze_image
+from Synthesizer.metadata import analyze_image
 import json
 from ast import literal_eval
 import numpy as np

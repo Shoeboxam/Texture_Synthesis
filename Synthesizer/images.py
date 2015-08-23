@@ -8,6 +8,8 @@ from shutil import copy
 from Raster.Raster import Raster
 from Raster import filter, math_utilities, analyze
 
+import Synthesizer
+
 import numpy as np
 np.set_printoptions(precision=2, linewidth=1000)
 
@@ -154,3 +156,20 @@ def apply_template(image, json_data, binding_json_data):
             altered_pieces.append(staged_image)
 
     return filter.composite(altered_pieces)
+
+
+def load_paths(root, paths):
+    raster_dict = {}
+
+    for path in paths:
+        if path.endswith('.png'):
+            try:
+                candidate = Raster.from_path(root + path, 'RGBA')
+
+                # Categorize images by thresholded layer mask
+                raster_dict[path.replace(root, "")] = candidate
+
+            except OSError:
+                continue
+
+    return raster_dict
