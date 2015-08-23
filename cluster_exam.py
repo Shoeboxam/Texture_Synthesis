@@ -1,4 +1,4 @@
-from Raster import filter, Raster
+from Raster import filters, Raster
 from Synthesizer.metadata import analyze_image
 import json
 from ast import literal_eval
@@ -14,7 +14,7 @@ apple_metadata = json.loads(open(r"C:\Users\mike_000\Synthesizer\metadata\templa
 cluster_map = np.array(literal_eval(apple_metadata['cluster_map']))
 print(cluster_map.reshape(apple.shape))
 
-layers = filter.layer_decomposite(apple, cluster_map)
+layers = filters.layer_decomposite(apple, cluster_map)
 
 for id, layer in enumerate(layers):
     layer.get_image().save(r"C:\Users\mike_000\Desktop\\" + layer.name + '_' + str(id) + ".png")

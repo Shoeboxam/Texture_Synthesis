@@ -1,5 +1,5 @@
 from multiprocessing.managers import BaseManager
-from multiprocessing import Queue, Process, cpu_count
+from multiprocessing import Queue, Process, cpu_count, Lock
 import time
 
 from collections import defaultdict
@@ -12,12 +12,20 @@ class DictManager(BaseManager):
 DictManager.register('defaultdict', defaultdict, DictProxy)
 
 
-def vectorize(items, function, arguments):
+def vectorize(items, function, args, returns=False):
 
     file_queue = Queue()
     map(file_queue.put, items)
 
-    pool = [Process(target=process_wrapper, args=arguments.prepend(file_queue), name=str(proc))
+    if returns:
+        manager = DictManager()
+        manager.start()
+        accumulator = manager.defaultdict(list)
+
+        args.append(Lock())
+        args.append(accumulator)
+
+    pool = [Process(target=process_wrapper, args=(file_queue, args), name=str(proc))
             for proc in range(cpu_count())]
 
     for proc in pool:
@@ -29,10 +37,10 @@ def vectorize(items, function, arguments):
     for proc in pool:
         proc.terminate()
 
+    if returns:
+        return accumulator
+
 
 def process_wrapper(item_queue, function, arguments):
     while True:
         function(item_queue.get(), *arguments)
-
-
-def process_wrapper_managed(item_queue, function, arguments, lock, manager):

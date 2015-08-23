@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from Raster import Raster, filter, analyze
+from Raster import Raster, filters, analyze
 from Raster.math_utilities import *
 
 from Synthesizer import images, Sources
@@ -24,10 +24,10 @@ def smooth_point():
 
 def break_apart():
     img = Raster.Raster.from_path(r"C:\Users\mike_000\Desktop\pack.png")
-    img = filter.colorize(img, 1, .1, .2, .3, .01, 0)
-    img = filter.contrast(img, 0.12)
+    img = filters.colorize(img, 1, .1, .2, .3, .01, 0)
+    img = filters.contrast(img, 0.12)
 
-    img_set = filter.value_decomposite(img, 5)
+    img_set = filters.value_decomposite(img, 5)
     print(img_set)
     for index, section in enumerate(img_set):
         pil = section.get_image()
@@ -45,8 +45,8 @@ def clusterator():
         r"C:\Users\mike_000\Desktop\tree.png")
 
     cluster_map = analyze.cluster(image, pieces=5)
-    pieces, guide = filter.layer_decomposite(image, cluster_map)
-    pieces = filter.merge_similar(pieces)
+    pieces, guide = filters.layer_decomposite(image, cluster_map)
+    pieces = filters.merge_similar(pieces)
 
     index = 0
     for cluster in pieces:
