@@ -63,7 +63,7 @@ def local_metadata(paths):
 
     def template_selection(path_listing):
         for node in path_listing:
-            if os.path.exists(path_listing.resource_pack + '\\' + os.path.join(*(node.split(os.path.sep)[1:]))):
+            if os.path.exists(paths.resource_pack + '\\' + os.path.join(*(node.split(os.path.sep)[1:]))):
                 template_paths.append(node)
                 return
 
@@ -86,10 +86,10 @@ def synthesize(paths):
 
 
 if __name__ == '__main__':
-    repository = Settings(r"./config.json")
+    paths = Settings(r"./config.json")
 
     # files.create_default(repository)
     # create_untextured(repository)
     # update_metadata(repository)
 
-    synthesize(repository)
+    local_metadata(paths)

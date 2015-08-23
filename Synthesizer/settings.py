@@ -22,7 +22,7 @@ class Settings:
         self.untextured_patches = self.home + '\\staging\\untextured_patches\\'
 
         self.template_metadata = self.home + '\\metadata\\templates\\'
-        self.file_metadata = self.home + '\\metadata\\mappings\\'
+        self.mappings_metadata = self.home + '\\metadata\\mappings\\'
         self.bindings_metadata = self.home + '\\metadata\\bindings\\'
 
         self.image_preprocess = self.home + '\\metadata\\preprocess.json'

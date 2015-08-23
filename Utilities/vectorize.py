@@ -15,7 +15,9 @@ DictManager.register('defaultdict', defaultdict, DictProxy)
 def vectorize(items, function, args, returns=False):
 
     file_queue = Queue()
-    map(file_queue.put, items)
+
+    for item in items:
+        file_queue.put(item)
 
     if returns:
         manager = DictManager()
@@ -25,7 +27,7 @@ def vectorize(items, function, args, returns=False):
         args.append(Lock())
         args.append(accumulator)
 
-    pool = [Process(target=process_wrapper, args=(file_queue, args), name=str(proc))
+    pool = [Process(target=process_wrapper, args=(file_queue, function, args), name=str(proc))
             for proc in range(cpu_count())]
 
     for proc in pool:
@@ -43,4 +45,5 @@ def vectorize(items, function, args, returns=False):
 
 def process_wrapper(item_queue, function, arguments):
     while True:
-        function(item_queue.get(), *arguments)
+        item = item_queue.get()
+        function(item, *arguments)

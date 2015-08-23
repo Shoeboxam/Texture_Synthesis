@@ -17,8 +17,7 @@ def build(paths, template_paths):
     """Generate all bindings"""
     if not os.path.exists(paths.bindings_metadata):
         os.mkdir(paths.bindings_metadata)
-
-    vectorize(template_paths, make_binding, paths)
+    vectorize(template_paths, make_binding, [paths])
 
 
 def make_binding(resource_template, paths):
@@ -31,6 +30,7 @@ def make_binding(resource_template, paths):
         resource_binding['relative_path'] = resource_template
 
         path_binding = paths.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
+        print(path_binding)
 
         with open(path_binding, 'w') as json_binding:
             json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
@@ -42,7 +42,7 @@ def make_binding(resource_template, paths):
 def resource_cluster_correspondence(paths, template_filename):
 
     # Load relevant images and json files
-    full_template_path = paths.metadata_mappings + '\\' + template_filename + '.json'
+    full_template_path = paths.file_metadata + '\\' + template_filename + '.json'
     group_name = json.loads(open(full_template_path, 'r').read())['group_name']
     template_metadata_json = json.loads(
         open(paths.template_metadata + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
@@ -133,7 +133,7 @@ def match(data_a, data_b, guide_a, guide_b, shape):
         mean_point_a = (np.average(np.array(points_a)[:, 0]), np.average(np.array(points_a)[:, 1]))
         mean_point_b = (np.average(np.array(points_b)[:, 0]), np.average(np.array(points_b)[:, 1]))
     except IndexError:
-        print("Indice overflow")
+        # print("Indice overflow")
         return False
 
     # Calculate euclidean distance between cluster centers
@@ -142,8 +142,8 @@ def match(data_a, data_b, guide_a, guide_b, shape):
     # Allow greater differences in proximity should the clusters have large spreads
     allowance = np.sqrt(np.prod(shape) * np.average((np.var(points_a), np.var(points_b)))) / 7
 
-    print('Proximity: ' + str(proximity))
-    print('Allowance: ' + str(allowance))
+    # print('Proximity: ' + str(proximity) + '\n' +
+    #       'Allowance: ' + str(allowance))
 
     if proximity > allowance:
         return False
