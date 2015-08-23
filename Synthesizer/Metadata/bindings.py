@@ -41,43 +41,46 @@ def make_binding(resource_template, paths):
 
 def resource_cluster_correspondence(paths, template_filename):
 
+    # Load relevant images and json files
     full_template_path = paths.metadata_mappings + '\\' + template_filename + '.json'
     group_name = json.loads(open(full_template_path, 'r').read())['group_name']
     template_metadata_json = json.loads(
         open(paths.template_metadata + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
-
     template_name = paths.resource_pack + '\\' + os.path.join(*(template_filename.split(os.path.sep)[1:]))
     template_image = Raster.from_path(template_name, 'RGBA')
-    print(template_image.name)
 
+    print(template_image.name)
     width_squared = (template_image.shape[0], template_image.shape[0])
     default_shape = ast.literal_eval(template_metadata_json['shape'])
 
+    # TODO: Add support for animations here. Currently takes first frame only
     try:
         template_image = filters.crop(template_image, (0, 0), width_squared)
     except ValueError:
         pass
 
+    # Break resource pack template image into chunks- expensive
+    # TODO: Diff-based clustering
     resource_clusters, resource_guide = image_cluster(template_image)
     resource_guide = np.reshape(resource_guide, width_squared)
 
+    # Resize resource pack template image's cluster guide to the size of the default pack template image's cluster guide
     resource_guide_resized = []
     for coord_x in np.array(np.linspace(0, template_image.shape[0] - 1, default_shape[0])).astype(int):
         for coord_y in np.array(np.linspace(0, template_image.shape[1] - 1, default_shape[1])).astype(int):
             resource_guide_resized.append(resource_guide[coord_x, coord_y])
 
-    # Resize to match default shape
     resource_guide = np.array(resource_guide_resized)
     default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(default_shape)
 
+    # Analyze each cluster in resource pack template image and save to list of dictionaries
     segment_metalist = []
-    for ident, segment in enumerate(resource_clusters):
-        segment_data = analyze_image(segment, granularity=len(resource_clusters))
-        segment_data['id'] = ident
-        segment_metalist.append(segment_data)
+    for segment in resource_clusters:
+        segment_metalist.append(analyze_image(segment, granularity=len(resource_clusters)))
 
     default_segment_metalist = template_metadata_json['segment_dicts']
 
+    # Change format from [ 0 1 2 ] to [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ]
     resource_guide_binary = []
     for ident in range(max(resource_guide.flatten()) + 1):
         resource_guide_binary.append(np.equal(resource_guide, ident))
@@ -86,10 +89,10 @@ def resource_cluster_correspondence(paths, template_filename):
     for ident in range(max(default_guide.flatten()) + 1):
         default_guide_binary.append(np.equal(default_guide, ident))
 
+    # Load dimensions from default metadata
     shape = list(ast.literal_eval(template_metadata_json['shape']))
-    # print(str(len(resource_guide_binary)) + str(len(default_guide_binary)))
-    # print(str(len(segment_metalist)) + str(len(default_segment_metalist)))
 
+    # Match each resource cluster to each default cluster
     flow_matrix = np.zeros((len(resource_guide_binary), len(default_guide_binary)))
     for coord_x, guide_res in enumerate(resource_guide_binary):
         for coord_y, guide_def in enumerate(default_guide_binary):
@@ -100,6 +103,9 @@ def resource_cluster_correspondence(paths, template_filename):
 
 
 def match(data_a, data_b, guide_a, guide_b, shape):
+    """Determine if two data sets are sufficiently similar"""
+
+    # Check hue, sat and lightness for similarity
     if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > .2:
         return False
     if abs(math_utilities.linear_mean(data_a['sats']) - math_utilities.linear_mean(data_b['sats'])) > .5:
@@ -108,6 +114,8 @@ def match(data_a, data_b, guide_a, guide_b, shape):
         return False
 
     # Clusters must be near each other
+
+    # Reformat binary listing into indexed array of points
     points_a = []
     for coord_x, column in enumerate(guide_a.reshape(shape)):
         for coord_y, value in enumerate(column):
@@ -120,17 +128,18 @@ def match(data_a, data_b, guide_a, guide_b, shape):
             if value:
                 points_b.append((coord_x, coord_y))
 
+    # Find center of cluster
     try:
         mean_point_a = (np.average(np.array(points_a)[:, 0]), np.average(np.array(points_a)[:, 1]))
         mean_point_b = (np.average(np.array(points_b)[:, 0]), np.average(np.array(points_b)[:, 1]))
     except IndexError:
         print("Indice overflow")
         return False
-    print(str(mean_point_a))
-    print(str(mean_point_b))
 
-    # Calculate euclidean distance
+    # Calculate euclidean distance between cluster centers
     proximity = euclidean(mean_point_a, mean_point_b)
+
+    # Allow greater differences in proximity should the clusters have large spreads
     allowance = np.sqrt(np.prod(shape) * np.average((np.var(points_a), np.var(points_b)))) / 7
 
     print('Proximity: ' + str(proximity))
