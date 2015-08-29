@@ -1,7 +1,7 @@
 import colorsys
 import os
 import json
-import ast
+import pathlib
 
 import numpy as np
 
@@ -11,30 +11,34 @@ from Raster import math_utilities, analyze, filters
 np.set_printoptions(precision=2, linewidth=1000)
 
 
-def populate_images(paths):
+def populate_images(paths, binding_ids):
 
-    for root, folders, files in os.walk(paths.file_metadata):
+    for root, folders, files in os.walk(paths.mappings_metadata):
         for image_file in files:
             full_path = os.path.join(root, image_file)
+            print(full_path)
 
             with open(full_path, 'r') as json_file:
+                mapping_data = json.load(json_file)
 
-                # Open data sources
+            template_name = os.path.split(mapping_data['group_name'])[1]
+            if template_name in binding_ids:
+
+                binding_path = paths.bindings_metadata + os.path.split(binding_ids[template_name])[1] + '.json'
                 try:
-                    mapping_data = json.load(json_file)
-                    binding_data = json.load(
-                        paths.bindings_metadata + '//' + os.path.split(mapping_data['group_name'])[1] + '.json')
-                    template = Raster.from_path(paths.default_patches + '//' + mapping_data['group_name'], 'RGBA')
-                except IOError:
-                    print('IOError: skipping map')
+                    binding_data = json.load(open(binding_path, 'r'))
+                except FileNotFoundError:
                     continue
+
+                template_path = paths.resource_pack + '\\'.join(pathlib.Path(binding_data['relative_path']).parts[1:])
+                template_image = Raster.from_path(template_path, 'RGBA')
 
                 # Transform image
                 # Json_data contains color info
-                output_image = apply_template(template, mapping_data, binding_data)
+                output_image = apply_template(template_image, mapping_data, binding_data)
 
                 # Output/save image
-                full_path_output = str(full_path).replace(paths.file_metadata, paths.output_path).replace('.json', '')
+                full_path_output = str(full_path).replace(paths.mappings_metadata, paths.output_path).replace('.json', '')
 
                 if not os.path.exists(os.path.split(full_path_output)[0]):
                     os.makedirs(os.path.split(full_path_output)[0])
@@ -44,54 +48,57 @@ def populate_images(paths):
 
 def apply_template(image, json_data, binding_json_data):
     # Split into clusters
-    pieces = filters.layer_decomposite(image, binding_json_data['cluster_map'])
+    layer_guide = np.array(list(map(int, binding_json_data['cluster_map'].split(','))))
+    pieces = filters.layer_decomposite(image, layer_guide)
+
     altered_pieces = []
+    flow_matrix = np.array(binding_json_data['flow_matrix'])
 
-    flow_matrix = ast.literal_eval(binding_json_data['flow_matrix'])
+    for ident, segment in enumerate(pieces):
 
-    for ident, (segment, cluster_data) in enumerate(pieces):
-        for target in flow_matrix[:, ident]:
+        for resource_cluster_id, match_data in enumerate(flow_matrix[ident, :]):
 
-            if cluster_data['apply'] and json_data['segment_dicts'][target]:
+            for default_cluster_id, match in enumerate(flow_matrix[:, resource_cluster_id]):
+                cluster_data = json_data['segment_dicts'][resource_cluster_id]
+                if match and not cluster_data['equivalent']:
 
-                # Adjust contrast
-                contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
-                staged_image = filters.contrast(segment, contrast_mult)
+                    # Adjust contrast
+                    contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
+                    staged_image = filters.contrast(segment, contrast_mult)
 
-                # Adjust lightness
-                lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
-                staged_image = filters.brightness(staged_image, lightness_adjustment)
+                    # Adjust lightness
+                    lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
+                    staged_image = filters.brightness(staged_image, lightness_adjustment)
 
-                # Adjust coloration
-                layer_count = len(cluster_data['hues'])*2
-                components = filters.value_decomposite(staged_image, layer_count)
+                    # Adjust coloration
+                    layer_count = len(cluster_data['hues'])*2
+                    components = filters.value_decomposite(staged_image, layer_count)
 
-                sat_poly_raw = math_utilities.polyfit(
-                    np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
+                    sat_poly_raw = math_utilities.polyfit(
+                        np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
 
-                sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
-                linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
-                hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
+                    sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
+                    linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
+                    hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
 
-                colorized_components = []
-                for index, layer in enumerate(components):
+                    colorized_components = []
+                    for index, layer in enumerate(components):
 
-                    normalized_index = float(index) / len(components)
+                        normalized_index = float(index) / len(components)
 
-                    hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
-                    sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
+                        hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
+                        sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
 
-                    # Reduce sat in lighter areas of image
-                    sat_target -= pow(2, (-5 * normalized_index)) / 2 - .05
+                        # Reduce sat in lighter areas of image
+                        sat_target -= pow(2, (-5 * normalized_index)) / 2 - .05
 
-                    layer = filters.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
-                    colorized_components.append(layer)
+                        layer = filters.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
+                        colorized_components.append(layer)
 
-                staged_image = filters.composite(colorized_components)
+                    staged_image = filters.composite(colorized_components)
 
-            else:
-                staged_image = segment
-
+                else:
+                    staged_image = segment
             altered_pieces.append(staged_image)
 
     return filters.composite(altered_pieces)

@@ -57,14 +57,16 @@ def local_metadata(paths):
     """Generate metadata specific to given resource pack"""
 
     # Update template directory
-    image_graph = network.load_graph(paths.home + '\\metadata\\image_graph.json')
+    image_graph = network.load_graph(paths.image_network)
 
-    template_paths = []
+    template_paths = {}
 
     def template_selection(path_listing):
         for node in path_listing:
             if os.path.exists(paths.resource_pack + '\\' + os.path.join(*(node.split(os.path.sep)[1:]))):
-                template_paths.append(node)
+                image_data = dict(image_graph.nodes(data=True))[node]
+                print(image_data)
+                template_paths[os.path.split(image_data['group_name'])[1]] = node
                 return
 
     for bunch in connected_component_subgraphs(image_graph):
@@ -75,21 +77,28 @@ def local_metadata(paths):
 
         template_selection(sorted_bunch)
 
-    print(str(len(template_paths)) + ' templates identified.')
+    print(str(len(list(template_paths.values()))) + ' templates identified.')
 
-    bindings.build(paths, template_paths)
+    with open(paths.binding_identifiers, 'w') as json_binding_ids:
+        json.dump(template_paths, json_binding_ids, sort_keys=True, indent=2)
+
+    bindings.build(paths, template_paths.values())
 
 
 def synthesize(paths):
     # Converts json files to images with templates
-    images.populate_images(paths)
+    with open(paths.binding_identifiers, 'r') as json_binding_ids:
+
+        binding_ids = json.load(json_binding_ids)
+        images.populate_images(paths, binding_ids)
 
 
 if __name__ == '__main__':
-    paths = Settings(r"./config.json")
+    settings = Settings(r"./config.json")
 
-    # files.create_default(repository)
-    # create_untextured(repository)
-    # update_metadata(repository)
+    # files.create_default(settings)
+    # create_untextured(settings)
+    # update_metadata(settings)
 
-    local_metadata(paths)
+    # local_metadata(settings)
+    synthesize(settings)

@@ -25,12 +25,12 @@ def make_binding(resource_template, paths):
     resource_binding = {}
     try:
         flow_matrix, resource_guide = resource_cluster_correspondence(paths, resource_template)
-        resource_binding['cluster_map'] = str(resource_guide)
+
+        resource_binding['cluster_map'] = ','.join(map(str, resource_guide.flatten().astype(np.int8).tolist()))
         resource_binding['flow_matrix'] = flow_matrix.tolist()
         resource_binding['relative_path'] = resource_template
 
         path_binding = paths.bindings_metadata + '\\' + os.path.split(resource_template)[1] + '.json'
-        print(path_binding)
 
         with open(path_binding, 'w') as json_binding:
             json.dump(resource_binding, json_binding, sort_keys=True, indent=2)
@@ -42,7 +42,7 @@ def make_binding(resource_template, paths):
 def resource_cluster_correspondence(paths, template_filename):
 
     # Load relevant images and json files
-    full_template_path = paths.file_metadata + '\\' + template_filename + '.json'
+    full_template_path = paths.mappings_metadata + '\\' + template_filename + '.json'
     group_name = json.loads(open(full_template_path, 'r').read())['group_name']
     template_metadata_json = json.loads(
         open(paths.template_metadata + '\\' + os.path.split(group_name)[1] + '.json', 'r').read())
@@ -70,7 +70,8 @@ def resource_cluster_correspondence(paths, template_filename):
         for coord_y in np.array(np.linspace(0, template_image.shape[1] - 1, default_shape[1])).astype(int):
             resource_guide_resized.append(resource_guide[coord_x, coord_y])
 
-    resource_guide = np.array(resource_guide_resized)
+    resource_guide_resized = np.array(resource_guide_resized)
+
     default_guide = np.array(ast.literal_eval(template_metadata_json['cluster_map'])).reshape(default_shape)
 
     # Analyze each cluster in resource pack template image and save to list of dictionaries
@@ -82,8 +83,8 @@ def resource_cluster_correspondence(paths, template_filename):
 
     # Change format from [ 0 1 2 ] to [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ]
     resource_guide_binary = []
-    for ident in range(max(resource_guide.flatten()) + 1):
-        resource_guide_binary.append(np.equal(resource_guide, ident))
+    for ident in range(max(resource_guide_resized.flatten()) + 1):
+        resource_guide_binary.append(np.equal(resource_guide_resized, ident))
 
     default_guide_binary = []
     for ident in range(max(default_guide.flatten()) + 1):
@@ -104,13 +105,14 @@ def resource_cluster_correspondence(paths, template_filename):
 
 def match(data_a, data_b, guide_a, guide_b, shape):
     """Determine if two data sets are sufficiently similar"""
+    threshold = .5
 
     # Check hue, sat and lightness for similarity
-    if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > .2:
+    if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > threshold:
         return False
-    if abs(math_utilities.linear_mean(data_a['sats']) - math_utilities.linear_mean(data_b['sats'])) > .5:
+    if abs(math_utilities.linear_mean(data_a['sats']) - math_utilities.linear_mean(data_b['sats'])) > threshold:
         return False
-    if abs(data_a['lightness'] - data_b['lightness']) > .5:
+    if abs(data_a['lightness'] - data_b['lightness']) > threshold:
         return False
 
     # Clusters must be near each other
@@ -148,5 +150,4 @@ def match(data_a, data_b, guide_a, guide_b, shape):
     if proximity > allowance:
         return False
 
-    print('Match')
     return True

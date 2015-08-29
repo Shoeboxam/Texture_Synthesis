@@ -27,6 +27,7 @@ class Settings:
 
         self.image_preprocess = self.home + '\\metadata\\preprocess.json'
         self.image_network = self.home + '\\metadata\\image_graph.json'
+        self.binding_identifiers = self.home + '\\metadata\\binding_identifiers.json'
 
         self.output_path = self.home + '\\output\\synthesized_resources\\'
 

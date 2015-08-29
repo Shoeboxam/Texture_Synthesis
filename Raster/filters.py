@@ -36,14 +36,17 @@ def contrast(raster, value_multiplier):
 
     # period_hue = 1
     period_val = pi / min([avg_val, 1 - avg_val])
-
     min_val = min(raster.channel('V'))
 
     # Modify each pixel
     for index, (h, s, v) in enumerate(raster.colors):
 
         # Blend in values at given opacity
-        v -= sin(period_val * (v - min_val)) * value_multiplier
+        # Note: Unhandled infinite value period may cause strange filter errors
+        try:
+            v -= sin(period_val * (v - min_val)) * value_multiplier
+        except ValueError:
+            pass
         v = clamp(v, 0, 1)
 
         raster.colors[index] = [h, s, v]
@@ -104,7 +107,6 @@ def value_decomposite(raster, layers):
 
 def layer_decomposite(raster, layer_map):
     clustered_images = []
-
     for cluster in range(int(max(layer_map) + 1)):
         filtered_mask = np.equal(cluster, layer_map) * raster.mask
 
