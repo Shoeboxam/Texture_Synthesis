@@ -8,15 +8,17 @@ import numpy as np
 from Raster.Raster import Raster
 from Raster import math_utilities, analyze, filters
 
+from Utilities.vectorize import vectorize
+
 np.set_printoptions(precision=2, linewidth=1000)
 
 
 def populate_images(paths, binding_ids):
 
+    template_paths = []
     for root, folders, files in os.walk(paths.mappings_metadata):
         for image_file in files:
             full_path = os.path.join(root, image_file)
-            print(full_path)
 
             with open(full_path, 'r') as json_file:
                 mapping_data = json.load(json_file)
@@ -30,25 +32,18 @@ def populate_images(paths, binding_ids):
                 except FileNotFoundError:
                     continue
 
-                template_path = paths.resource_pack + '\\'.join(pathlib.Path(binding_data['relative_path']).parts[1:])
-                template_image = Raster.from_path(template_path, 'RGBA')
+                template_paths.append((full_path, mapping_data, binding_data))
 
-                # Transform image
-                # Json_data contains color info
-                output_image = apply_template(template_image, mapping_data, binding_data)
-
-                # Output/save image
-                full_path_output = str(full_path).replace(paths.mappings_metadata, paths.output_path).replace('.json', '')
-
-                if not os.path.exists(os.path.split(full_path_output)[0]):
-                    os.makedirs(os.path.split(full_path_output)[0])
-
-                output_image.get_image().save(full_path_output)
+    vectorize(template_paths, apply_template, [paths])
 
 
-def apply_template(image, json_data, binding_json_data):
+def apply_template(data, paths):
+    mapping_path, json_data, binding_json_data = data
+    template_path = paths.resource_pack + '\\'.join(pathlib.Path(binding_json_data['relative_path']).parts[1:])
     # Split into clusters
     layer_guide = np.array(list(map(int, binding_json_data['cluster_map'].split(','))))
+
+    image = Raster.from_path(template_path, 'RGBA')
     pieces = filters.layer_decomposite(image, layer_guide)
 
     altered_pieces = []
@@ -63,7 +58,7 @@ def apply_template(image, json_data, binding_json_data):
                 if match and not cluster_data['equivalent']:
 
                     # Adjust contrast
-                    contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .3
+                    contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .1
                     staged_image = filters.contrast(segment, contrast_mult)
 
                     # Adjust lightness
@@ -90,7 +85,10 @@ def apply_template(image, json_data, binding_json_data):
                         sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
 
                         # Reduce sat in lighter areas of image
-                        sat_target -= pow(2, (-5 * normalized_index)) / 2 - .05
+                        mean_lightness = analyze.mean(layer, 'V')
+                        sat_reduction = pow(mean_lightness, len(components)) * sat_target
+                        sat_target -= sat_reduction
+                        sat_target = math_utilities.clamp(sat_target)
 
                         layer = filters.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
                         colorized_components.append(layer)
@@ -101,7 +99,16 @@ def apply_template(image, json_data, binding_json_data):
                     staged_image = segment
             altered_pieces.append(staged_image)
 
-    return filters.composite(altered_pieces)
+    output_image = filters.composite(altered_pieces)
+
+    # Output/save image
+    full_path_output = str(mapping_path).replace(paths.mappings_metadata, paths.output_path).replace('.json', '')
+    print(full_path_output)
+
+    if not os.path.exists(os.path.split(full_path_output)[0]):
+        os.makedirs(os.path.split(full_path_output)[0])
+
+    output_image.get_image().save(full_path_output)
 
 
 def load_paths(root, paths):

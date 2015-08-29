@@ -12,7 +12,7 @@ class DictManager(BaseManager):
 DictManager.register('defaultdict', defaultdict, DictProxy)
 
 
-def vectorize(items, function, args, returns=False):
+def vectorize(items, function, args=None, returns=False):
 
     file_queue = Queue()
 
@@ -44,6 +44,12 @@ def vectorize(items, function, args, returns=False):
 
 
 def process_wrapper(item_queue, function, arguments):
-    while True:
-        item = item_queue.get()
-        function(item, *arguments)
+    if arguments is not None:
+        while True:
+            item = item_queue.get()
+            function(item, *arguments)
+
+    else:
+        while True:
+            item = item_queue.get()
+            function(item)
