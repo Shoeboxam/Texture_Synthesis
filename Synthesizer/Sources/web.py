@@ -9,10 +9,12 @@ import zipfile
 import scrapy
 
 def clone_repo(url, target):
+    repo_name = os.path.split(url)
     try:
+        print("Cloning " + repo_name[1])
         Repo.clone_from(url, target)
     except GitCommandError:
-        print("Repository " + url + " already cloned")
+        print("Repository " + repo_name[1] + " already cloned")
 
 
 def download_minecraft(version, target):

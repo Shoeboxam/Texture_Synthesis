@@ -1,3 +1,7 @@
+# import sys
+# sys.path.insert(0, '../')
+# sys.path.insert(0, 'C:/Users/Patrick/Github/Texture_Synthesis')
+
 import os
 from itertools import chain
 
@@ -6,6 +10,7 @@ from networkx import connected_component_subgraphs
 from Synthesizer import images, metadata
 from Synthesizer.settings import Settings
 
+import Synthesizer.sources.files as files
 import Synthesizer.metadata.templates as templates
 import Synthesizer.metadata.network as network
 import Synthesizer.metadata.mappings as mappings
@@ -97,8 +102,8 @@ if __name__ == '__main__':
     settings = Settings(r"./config.json")
 
     # files.create_default(settings)
-    # create_untextured(settings)
-    # update_metadata(settings)
+    # files.create_untextured(settings)
+    global_metadata(settings)
 
-    # local_metadata(settings)
+    local_metadata(settings)
     synthesize(settings)
