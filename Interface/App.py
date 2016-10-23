@@ -6,8 +6,9 @@ from Synthesizer.sources import files
 
 from Synthesizer.settings import Settings
 
+
 class App(tk.Frame):
-    textures = {}
+    textures = []
 
     def __init__(self, master, path):
         path = path.replace('\\', '//')
@@ -27,7 +28,7 @@ class App(tk.Frame):
         self.Frame1.columnconfigure(0, weight=1)
         self.Frame1.rowconfigure(0, weight=1)
 
-        self.Tree.bind("<ButtonRelease-1>", self.TreeItemClick)
+        self.Tree.bind("<<TreeviewSelect>>", self.click_tree_item)
 
         self.Tree.heading('#0', text="Default Patches", anchor='w')
 
@@ -51,54 +52,68 @@ class App(tk.Frame):
         self.imagebox.grid(row=0, column=0, sticky="nsew")
         self.Frame2.rowconfigure(0, minsize=int(root.winfo_screenheight()/2))
 
-        self.listbox = tk.Listbox(self.Frame2, selectmode="extended")
-        self.listbox.grid(row=1, column=0, sticky="nsew")
-        self.Frame2.rowconfigure(1, weight=2)
+        self.Search = tk.Entry(self.Frame2)
+        self.Search.grid(row=1, column=0, sticky="w")
+        self.Frame2.rowconfigure(1)
+
+        self.Search.bind("<KeyRelease>", self.click_search_item)
+
+        self.Listbox = tk.Listbox(self.Frame2, selectmode="extended")
+        self.Listbox.grid(row=2, column=0, sticky="nsew")
+        self.Frame2.rowconfigure(2, weight=2)
         self.Frame2.columnconfigure(0, weight=1)
 
-        self.listbox.bind("<ButtonRelease-1>", self.ListboxItemClick)
+        self.Listbox.bind("<<ListboxSelect>>", self.click_listbox_item)
 
-        ysbFrame2 = ttk.Scrollbar(self.Frame2, orient='vertical', command=self.listbox.yview)
-        self.listbox.configure(yscroll=ysbFrame2.set)
+        ysbFrame2 = ttk.Scrollbar(self.Frame2, orient='vertical', command=self.Listbox.yview)
+        self.Listbox.configure(yscroll=ysbFrame2.set)
 
-        for item in self.textures.values():
-            self.listbox.insert(0, item)
+        for item in self.textures:
+            self.Listbox.insert(0, item)
 
-        ysbFrame2.grid(row=1, column=1, sticky='ns')
+        ysbFrame2.grid(row=2, column=1, sticky='ns')
 
         # Frame 3
         self.Frame3 = tk.Listbox(master)
         self.Frame3.grid(row=0, column=2, sticky="nsew")
         self.master.columnconfigure(2, weight=1)
 
-
         templates = ['Carl', 'Patrick', 'Lindsay', 'Helmut', 'Chris', 'Gwen']
         for item in templates:
             self.Frame3.insert(0, item)
 
-    def TreeItemClick(self, event):
+    def click_tree_item(self, event):
         selitems = self.Tree.selection()
         self.textures.clear()
 
-        def parent_prepend(id, path):
-            parent = self.Tree.item(id, "parent")
+        def parent_prepend(iid, path_end):
+            parent = self.Tree.item(iid, "parent")
             if parent:
-                path = self.Tree.item(parent, "value") + path
-                parent_prepend(parent, path)
-            return path
+                path_end = self.Tree.item(parent, "value") + path_end
+                parent_prepend(parent, path_end)
+            return path_end
 
         if selitems:
-            self.listbox.delete(0, "end")
+            self.Listbox.delete(0, "end")
             for item in selitems:                             # Each selection
                 folder = os.path.normpath(self.Tree.item(item, "tags")[0])
-                for path, subdirs, files in os.walk(folder):  # Each folder
-                    for name in files:                        # Each file
+                for path, subdirs, file_list in os.walk(folder):  # Each folder
+                    for name in file_list:                        # Each file
                         key = (path + '\\' + name).replace(settings.default_patches, "")
-                        self.textures[key] = name
-                        self.listbox.insert(0,key)
+                        self.textures.append(key)
+                        self.Listbox.insert(0, key)
 
-    def ListboxItemClick(self, event):
-        firstitem = self.listbox.get(self.listbox.curselection()[0])
+    def click_search_item(self, event):
+        searchStr = self.Search.get().lower()
+        self.Listbox.delete(0, "end")
+        for path in self.textures:
+            if searchStr in path.lower():
+                self.Listbox.insert(0, path)
+        # self.listbox.selection_set(0, "end")
+
+    def click_listbox_item(self, event):
+
+        firstitem = self.Listbox.get(self.Listbox.curselection()[0])
 
         imageselected = Image.open(settings.default_patches + '\\' + firstitem)
         dim = min(imageselected.size)

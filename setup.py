@@ -9,8 +9,7 @@ requirements = [
     'Pillow==3.4.2',
     'scikit-image==0.11.2',
     'scikit-learn==0.15.2',
-    'scipy==0.15.1',
-    'gitPython=1.0.1'
+    'scipy==0.15.1'
 ]
 
 test_requirements = [
