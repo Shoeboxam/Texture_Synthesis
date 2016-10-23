@@ -6,7 +6,7 @@ requirements = [
     'networkx==1.9.1',
     'numpy==1.9.2',
     'pandas==0.15.2',
-    'Pillow==2.7.0',
+    'Pillow==3.4.2',
     'scikit-image==0.11.2',
     'scikit-learn==0.15.2',
     'scipy==0.15.1',
