@@ -7,7 +7,6 @@ import numpy as np
 
 from Raster.Raster import Raster
 from Raster import math_utilities, analyze, filters
-
 from Utilities.vectorize import vectorize
 
 np.set_printoptions(precision=2, linewidth=1000)
@@ -52,18 +51,14 @@ def apply_template(data, paths):
     for ident, segment in enumerate(pieces):
 
         for resource_cluster_id, match_data in enumerate(flow_matrix[ident, :]):
-
             for default_cluster_id, match in enumerate(flow_matrix[:, resource_cluster_id]):
+
                 cluster_data = json_data['segment_dicts'][resource_cluster_id]
                 if match and not cluster_data['equivalent']:
 
                     # Adjust contrast
-                    contrast_mult = (analyze.variance(segment, 'V') - cluster_data['variance']) * .1
+                    contrast_mult = abs(analyze.variance(segment, 'V') - cluster_data['variance']) * .1
                     staged_image = filters.contrast(segment, contrast_mult)
-
-                    # Adjust lightness
-                    lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
-                    staged_image = filters.brightness(staged_image, lightness_adjustment)
 
                     # Adjust coloration
                     layer_count = len(cluster_data['hues'])*2
@@ -95,11 +90,26 @@ def apply_template(data, paths):
 
                     staged_image = filters.composite(colorized_components)
 
+                    # Adjust lightness
+                    lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
+                    print(lightness_adjustment)
+                    while(analyze.mean(staged_image, 'V') - abs(lightness_adjustment)
+                          < cluster_data['lightness']
+                          < analyze.mean(staged_image, 'V') + abs(lightness_adjustment)):
+
+                        print(template_path + '\n'
+                              + str(cluster_data['lightness']) + ' ' + str(analyze.mean(staged_image, 'V')) + '\n'
+                              + str(lightness_adjustment))
+
+                        staged_image = filters.brightness(staged_image, lightness_adjustment)
+
                 else:
                     staged_image = segment
             altered_pieces.append(staged_image)
 
     output_image = filters.composite(altered_pieces)
+
+    output_image.mask = image.mask
 
     # Output/save image
     full_path_output = str(mapping_path).replace(paths.mappings_metadata, paths.output_path).replace('.json', '')
@@ -109,42 +119,6 @@ def apply_template(data, paths):
         os.makedirs(os.path.split(full_path_output)[0])
 
     output_image.get_image().save(full_path_output)
-
-
-def load_paths(root, paths):
-    raster_dict = {}
-
-    for path in paths:
-        if path.endswith('.png'):
-            try:
-                candidate = Raster.from_path(root + path, 'RGBA')
-
-                # Categorize images by thresholded layer mask
-                raster_dict[path.replace(root, "")] = candidate
-
-            except OSError:
-                continue
-
-    return raster_dict
-
-
-def image_cluster(template_image):
-    template_image.to_hsv()
-
-    # Intuition on how many sections to split an image into
-    sections = int(max(analyze.variance(template_image)) * 50)
-
-    if sections < 2:
-        layer_map = np.zeros(np.product(template_image.shape)).astype(np.int16)
-    else:
-        # Clustering algorithm
-        layer_map = analyze.cluster(template_image, sections)
-
-    layer_map = np.array(layer_map).astype(int)
-
-    image_clusters = filters.layer_decomposite(template_image, layer_map)
-
-    return filters.merge_similar(image_clusters, layer_map=layer_map)
 
 
 def analyze_image(image, template=None, granularity=10):
@@ -190,3 +164,20 @@ def analyze_image(image, template=None, granularity=10):
         data['equivalent'] = equivalent
 
     return data
+
+
+def load_paths(root, paths):
+    raster_dict = {}
+
+    for path in paths:
+        if path.endswith('.png'):
+            try:
+                candidate = Raster.from_path(root + path, 'RGBA')
+
+                # Categorize images by thresholded layer mask
+                raster_dict[path.replace(root, "")] = candidate
+
+            except OSError:
+                continue
+
+    return raster_dict

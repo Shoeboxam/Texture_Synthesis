@@ -37,8 +37,8 @@ class Raster(object):
     def colors(self, values):
         values = np.array(values).astype(np.float64)
 
-        if len(values) != np.product(self._shape):
-            raise ValueError("Length of colors does not match shape")
+        # if len(values) != np.product(self._shape):
+        #     raise ValueError("Length of colors does not match shape")
 
         self._colors = np.array(values)
 
@@ -121,14 +121,14 @@ class Raster(object):
 
         channels = channel_depth[mode]
 
-        width, height = array.shape
-        array = np.reshape(array, (np.product(array.shape), 4))
-
+        width, height = array.shape[0:2]
+        array = np.reshape(array, (np.product(array.shape[0:2]), 4))
         # Normalize data
         bits = bit_depth[mode]
-        array = array.astype(np.float64) / (2**bits - 1)
-
+        # print(array)
+        # array = array.astype(np.float64) / (2**bits - 1)
         colors = array[:, :channels-1]
+        # print(colors)
         mask = array[:, channels-1]
         return cls(colors, (width, height), mode.replace('A', ''), mask)
 
@@ -165,6 +165,9 @@ class Raster(object):
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
                 self._colors[index] = [r, g, b]
                 self._mode = 'RGB'
+
+    def save(self, path):
+        self.get_image().save(path)
 
     # Optional fragment-based manipulation
     def filter(self, func, *args):

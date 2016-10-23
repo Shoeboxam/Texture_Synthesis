@@ -8,7 +8,8 @@ from scipy.spatial.distance import euclidean
 
 from Raster.Raster import Raster
 from Raster import math_utilities, filters
-from Synthesizer.images import image_cluster, analyze_image
+from Synthesizer.images import analyze_image
+from Synthesizer.cluster import spectral_cluster
 
 from Utilities.vectorize import vectorize
 
@@ -61,7 +62,7 @@ def resource_cluster_correspondence(paths, template_filename):
 
     # Break resource pack template image into chunks- expensive
     # TODO: Diff-based clustering
-    resource_clusters, resource_guide = image_cluster(template_image)
+    resource_clusters, resource_guide = spectral_cluster(template_image)
     resource_guide = np.reshape(resource_guide, width_squared)
 
     # Resize resource pack template image's cluster guide to the size of the default pack template image's cluster guide
@@ -105,7 +106,7 @@ def resource_cluster_correspondence(paths, template_filename):
 
 def match(data_a, data_b, guide_a, guide_b, shape):
     """Determine if two data sets are sufficiently similar"""
-    threshold = .5
+    threshold = .7
 
     # Check hue, sat and lightness for similarity
     if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > threshold:

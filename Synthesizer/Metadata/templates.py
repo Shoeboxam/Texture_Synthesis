@@ -4,7 +4,8 @@ import os
 from networkx import connected_components
 
 from Raster.Raster import Raster
-from Synthesizer.images import image_cluster, analyze_image
+from Synthesizer.images import analyze_image
+from Synthesizer.cluster import spectral_cluster
 from Synthesizer.metadata.network import connectivity_sort
 from Utilities.vectorize import vectorize
 
@@ -32,7 +33,7 @@ def build(paths, image_graph):
 def make_template(template_name, template_directory, home):
 
     template_image = Raster.from_path(template_name, 'RGBA')
-    image_clusters, guide = image_cluster(template_image)
+    image_clusters, guide = spectral_cluster(template_image)
     sections = len(image_clusters)
 
     print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
