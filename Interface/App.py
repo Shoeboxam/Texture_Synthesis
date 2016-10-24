@@ -147,10 +147,13 @@ class App(tk.Frame):
 
     def click_stencil_edit(self, event):
         editor = tk.Toplevel()
-        w, h = int(editor.winfo_screenwidth()/2), int(editor.winfo_screenheight()/2)
+        w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
         editor.geometry("%dx%d+0+0" % (w, h))
-        StencilEditor(editor, stencil=self.Frame3.selection_get(),
-                      stencildir=settings.stencil_metadata, path=settings.default_patches)
+        StencilEditor(editor,
+                      stencil=self.Frame3.selection_get(),
+                      stenciledit=settings.stencil_editing,
+                      stencildir=settings.stencil_metadata,
+                      path=settings.default_patches)
 
 
 root = tk.Tk()

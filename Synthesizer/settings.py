@@ -17,6 +17,7 @@ class Settings:
         self.key_repository = self.home + '\\sources\\key_repository\\'
         self.mods_directory = self.home + '\\sources\\mods\\'
 
+        self.stencil_editing = self.home + '\\staging\\stencil_editing\\'
         self.default_patches = self.home + '\\staging\\default_patches\\'
         self.repository_patches = self.home + '\\staging\\repository_patches\\'
         self.untextured_patches = self.home + '\\staging\\untextured_patches\\'
