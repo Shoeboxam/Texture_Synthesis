@@ -21,6 +21,7 @@ class Settings:
         self.repository_patches = self.home + '\\staging\\repository_patches\\'
         self.untextured_patches = self.home + '\\staging\\untextured_patches\\'
 
+        self.stencil_metadata = self.home + '\\metadata\\stencils\\'
         self.template_metadata = self.home + '\\metadata\\templates\\'
         self.mappings_metadata = self.home + '\\metadata\\mappings\\'
         self.bindings_metadata = self.home + '\\metadata\\bindings\\'

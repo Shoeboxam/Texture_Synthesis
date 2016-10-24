@@ -1,17 +1,22 @@
+from Synthesizer.sources import files
+from Synthesizer.settings import Settings
+
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
-import os
-from Synthesizer.sources import files
 
-from Synthesizer.settings import Settings
+from Interface.StencilEditor import StencilEditor
+
+import os, json
+
+import copy
 
 
 class App(tk.Frame):
     textures = []
+    templates = []
 
-    def __init__(self, master, path):
-        path = path.replace('\\', '//')
+    def __init__(self, master):
         tk.Frame.__init__(self, master)
         self.grid()
         self.master.title("Synthesizer")
@@ -35,6 +40,7 @@ class App(tk.Frame):
         ysb = ttk.Scrollbar(self.Frame1, orient='vertical', command=self.Tree.yview)
         self.Tree.configure(yscroll=ysb.set)
 
+        path = settings.default_patches.replace('\\', '//')
         root_node = self.Tree.insert('', 'end', text=path, open=True)
         self.process_directory(root_node, path, self.Tree)
 
@@ -78,20 +84,23 @@ class App(tk.Frame):
         self.Frame3.grid(row=0, column=2, sticky="nsew")
         self.master.columnconfigure(2, weight=1)
 
-        templates = ['Carl', 'Patrick', 'Lindsay', 'Helmut', 'Chris', 'Gwen']
+        if not os.path.exists(settings.stencil_metadata):
+            os.makedirs(settings.stencil_metadata)
+
+        for file in os.listdir(settings.stencil_metadata):
+            json.loads(open(file).read())
+
+        self.Frame3.insert(0, "Create New Stencil...")
+
+        templates = os.listdir(settings.stencil_metadata)
         for item in templates:
             self.Frame3.insert(0, item)
+
+        self.Frame3.bind("<Double-Button-1>", self.click_stencil_edit)
 
     def click_tree_item(self, event):
         selitems = self.Tree.selection()
         self.textures.clear()
-
-        def parent_prepend(iid, path_end):
-            parent = self.Tree.item(iid, "parent")
-            if parent:
-                path_end = self.Tree.item(parent, "value") + path_end
-                parent_prepend(parent, path_end)
-            return path_end
 
         if selitems:
             self.Listbox.delete(0, "end")
@@ -136,6 +145,14 @@ class App(tk.Frame):
                 oid = tree.insert(parent, 'end', text=p, tags=abspath, open=False)
                 self.process_directory(oid, abspath, tree)
 
+    def click_stencil_edit(self, event):
+        editor = tk.Toplevel()
+        w, h = int(editor.winfo_screenwidth()/2), int(editor.winfo_screenheight()/2)
+        editor.geometry("%dx%d+0+0" % (w, h))
+        StencilEditor(editor, stencil=self.Frame3.selection_get(),
+                      stencildir=settings.stencil_metadata, path=settings.default_patches)
+
+
 root = tk.Tk()
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()
 root.geometry("%dx%d+0+0" % (w, h))
@@ -144,5 +161,5 @@ settings = Settings(r"C:/Users/mike_000/Documents/Pycharm/Texture_Synthesis/Synt
 if not (os.path.exists(settings.default_patches)):
     files.create_default(settings.mods_directory)
 
-app = App(root, path=settings.default_patches)
+app = App(root)
 app.mainloop()
