@@ -2,36 +2,23 @@ import json
 import os
 
 from Raster.Raster import Raster
-from Synthesizer.images import analyze_image
-from Synthesizer.cluster import spectral_cluster
 
 
-def make_stencil(stencil_name, stencil_directory, home):
+def make_stencil(stencil_name, quantity, stencil_staging, stencil_configs, colorize, relative_path):
 
-    template_image = Raster.from_path(template_name, 'RGBA')
-    image_clusters, guide = spectral_cluster(template_image)
-    sections = len(image_clusters)
+    masks = []
 
-    print('-S: ' + str(len(image_clusters)) + ' | ' + template_name)
+    for id in range(quantity):
+        stencil_path = os.path.normpath(stencil_staging + "\\" + stencil_name + "_" + str(id+1) + ".png")
+        stencil = Raster.from_path(stencil_path, 'RGBA')
+        masks.append(stencil.mask.tolist())
 
-    # Analyze each cluster, save to list of dicts
-    segment_metalist = []
-    for ident, segment in enumerate(image_clusters):
-        cluster_data = analyze_image(segment, granularity=sections)
-        cluster_data['id'] = ident
-        segment_metalist.append(cluster_data)
+    stencil_path = stencil_staging + "\\" + stencil_name + "_1.png"
+    stencil_data = dict(name=stencil_name,
+                        shape=Raster.from_path(stencil_path, 'RGBA').shape.tolist(),
+                        mask=masks,
+                        colorize=colorize,
+                        path=relative_path)
 
-    meta_dict = {
-        'group_name': template_name.replace(home, ''),
-        'segment_dicts': segment_metalist,
-        'cluster_map': json.dumps(guide.tolist()),
-        'shape': str(template_image.shape)
-    }
-
-    # Create folder structure
-    if not os.path.exists(template_directory):
-        os.makedirs(template_directory)
-
-    # Save json file
-    with open(template_directory + "\\" + os.path.split(template_name)[1] + ".json", 'w') as output_file:
-        json.dump(meta_dict, output_file, sort_keys=True, indent=2)
+    with open(stencil_configs + '//' + stencil_name + ".json", 'w') as output_file:
+        json.dump(stencil_data, output_file, sort_keys=True, indent=2)

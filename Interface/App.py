@@ -86,10 +86,10 @@ class App(tk.Frame):
         if not os.path.exists(settings.stencil_metadata):
             os.makedirs(settings.stencil_metadata)
 
-        for file in os.listdir(settings.stencil_metadata):
-            json.loads(open(file).read())
-
         self.Frame3.insert(0, "Create New Stencil...")
+
+        for file in os.listdir(settings.stencil_metadata):
+            self.Frame3.insert(1, json.loads(open(file).read())['name'])
 
         templates = os.listdir(settings.stencil_metadata)
         for item in templates:
@@ -149,6 +149,13 @@ class App(tk.Frame):
         editor.geometry("%dx%d+0+0" % (w, h))
 
         selection = self.Listbox.curselection()
+        if self.Frame3.curselection()[0] > 1:
+            StencilEditor(editor,
+                          stencil=self.Frame3.selection_get(),
+                          stenciledit=settings.stencil_editing,
+                          stencildir=settings.stencil_metadata,
+                          default_patches=settings.default_patches,
+                          textures=None)
 
         if selection:
             items = [self.Listbox.get(selection) for selection in selection]
@@ -156,7 +163,7 @@ class App(tk.Frame):
                       stencil=self.Frame3.selection_get(),
                       stenciledit=settings.stencil_editing,
                       stencildir=settings.stencil_metadata,
-                      path=settings.default_patches,
+                      default_patches=settings.default_patches,
                       textures=items)
 
         else:
@@ -164,7 +171,7 @@ class App(tk.Frame):
                       stencil=self.Frame3.selection_get(),
                       stenciledit=settings.stencil_editing,
                       stencildir=settings.stencil_metadata,
-                      path=settings.default_patches,
+                      default_patches=settings.default_patches,
                       textures=self.textures)
 
 root = tk.Tk()

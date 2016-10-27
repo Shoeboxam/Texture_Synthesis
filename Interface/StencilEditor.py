@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
-import os, random, json, copy
+import os, json
+import numpy as np
 from Raster.Raster import Raster
 from Raster.filters import colorize, composite
 from colorsys import hsv_to_rgb
+from Synthesizer.metadata import stencils
 
 
 class StencilEditor(tk.Frame):
@@ -12,16 +14,16 @@ class StencilEditor(tk.Frame):
     stencil_data = None
 
     layer_quantity = 1
+    colorize = []
 
-    hues = [random.uniform(0, 1) for x in range(0, 10)]
+    hues = [0.68, 0.32, 0.97, 0.50, 0.17, 0.86, 0.44, 0.09, 0.78, 0.57]
 
-    def __init__(self, master, stencil, stenciledit, stencildir, path, textures):
+    def __init__(self, master, stencil, stenciledit, stencildir, default_patches, textures):
         tk.Frame.__init__(self, master)
         self.stencilname = stencil
         self.stenciledit = stenciledit
         self.stencildir = stencildir
-        self.default_patches = path
-        self.path = path.replace('\\', '//')
+        self.default_patches = default_patches.replace('\\', '//')
 
         self.grid()
         self.master.title(stencil)
@@ -29,8 +31,7 @@ class StencilEditor(tk.Frame):
         self.master.rowconfigure(0, weight=1)
 
         try:
-            self.stencil_data = json.load(open(stencildir + "\\" + stencil + ".json"))
-            self.imagestencil = Image.open(self.stencil_data["path"])
+            self.load_stencil(None)
         except FileNotFoundError:
             self.imagestencil = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil.png")
             self.imagestencilmasked = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil_masked.png")
@@ -41,15 +42,9 @@ class StencilEditor(tk.Frame):
         self.Frame1.grid(row=0, column=0, sticky="nsew")
         self.Frame1.columnconfigure(0, weight=1)
 
-        self.labelname = tk.Label(self.Frame1, text="Name")
-        self.labelname.grid(row=0, column=0, sticky="w")
-        self.entryname = tk.Entry(self.Frame1)
-        self.entryname.grid(row=0, column=0, sticky="e")
-        self.Frame1.rowconfigure(0)
-
         self.Listbox = tk.Listbox(self.Frame1)
-        self.Listbox.grid(row=3, column=0, sticky="nsew")
-        self.Frame1.rowconfigure(3, weight=1)
+        self.Listbox.grid(row=0, column=0, sticky="nsew")
+        self.Frame1.rowconfigure(0, weight=1)
 
         self.Listbox.bind("<<ListboxSelect>>", self.prepare_stencils)
 
@@ -59,7 +54,7 @@ class StencilEditor(tk.Frame):
 
         ysb = ttk.Scrollbar(self.Frame1, orient='vertical', command=self.Listbox.yview)
         self.Listbox.configure(yscroll=ysb.set)
-        ysb.grid(row=3, column=1, sticky='ns')
+        ysb.grid(row=0, column=1, sticky='ns')
 
         # Frame 2
         self.Frame2 = tk.Frame(master)
@@ -83,24 +78,35 @@ class StencilEditor(tk.Frame):
         self.Frame3.grid(row=0, column=2, sticky="nsew")
         self.Frame3.columnconfigure(0, weight=1)
 
-        self.labelquantity = tk.Label(self.Frame3, text="Quantity")
-        self.labelquantity.grid(row=0, column=0, sticky="w")
-        self.entryquantity = tk.Entry(self.Frame3)
-        self.entryquantity.grid(row=0, column=0, sticky="ne")
+        self.labelname = tk.Label(self.Frame3, text="Name")
+        self.labelname.grid(row=0, column=0, sticky="w")
+        self.entryname = tk.Entry(self.Frame3)
+        self.entryname.grid(row=0, column=0, sticky="e")
         self.Frame3.rowconfigure(0)
 
-        self.entryquantity.bind("<KeyRelease>", self.click_quantity_item)
+        self.labelquantity = tk.Label(self.Frame3, text="Quantity")
+        self.labelquantity.grid(row=1, column=0, sticky="w")
+        self.quantityvar = tk.IntVar(self.Frame3)
+        self.quantityvar.set(self.layer_quantity)
+
+        self.optionquantity = tk.OptionMenu(self.Frame3, self.quantityvar, 1,2,3,4,5,6,7,8,9,10,
+                                            command=self.click_quantity_item)
+        self.optionquantity.grid(row=1, column=0, sticky="ne")
+        self.Frame3.rowconfigure(1)
 
         self.LayerFrame = tk.Frame(self.Frame3)
-        self.LayerFrame.grid(row=1, column=0, sticky="nsew")
-        self.Frame3.rowconfigure(1, weight=1)
+        self.LayerFrame.grid(row=2, column=0, sticky="nsew")
+        self.Frame3.rowconfigure(2, weight=1)
 
         self.LayerLabels = []
         self.LayerButtons = []
         self.LayerRecolor = []
 
         self.make_layer_gui()
-        
+        self.ButtonSave = tk.Button(self.Frame3, text="SAVE", command=self.save_stencil)
+        self.ButtonSave.grid(row=3, column=0, sticky="nsew")
+        self.Frame3.rowconfigure(3)
+
         self.prepare_stencils(None)
 
     def image_masker(self):
@@ -121,11 +127,11 @@ class StencilEditor(tk.Frame):
         if not os.path.exists(self.stenciledit):
             os.makedirs(self.stenciledit)
 
-        selection = self.Listbox.get(self.Listbox.curselection()[0])
+        self.relative_path = self.Listbox.get(self.Listbox.curselection()[0])
 
-        absolutepath = os.path.normpath(self.path + "//" + selection)
+        absolutepath = os.path.normpath(self.default_patches + "//" + self.relative_path)
 
-        name = os.path.basename(absolutepath)
+        name = os.path.basename(absolutepath).replace('.png', '')
         self.stencilname = name
         self.entryname.delete(0, "end")
         self.entryname.insert(0, name)
@@ -150,7 +156,7 @@ class StencilEditor(tk.Frame):
         self.stencilimage = Image.open(absolutepath)
 
         for i in range(self.layer_quantity):
-            stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(i) + '.png'
+            stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(i+1) + '.png'
             self.stencilpaths.append(stencilpath)
             self.stencilimage.save(stencilpath)
 
@@ -169,7 +175,7 @@ class StencilEditor(tk.Frame):
         self.LayerRecolor.clear()
 
         for i in range(self.layer_quantity):
-            label = tk.Label(self.LayerFrame, text="Layer " + str(i))
+            label = tk.Label(self.LayerFrame, text="Layer " + str(i+1))
             label.grid(row=i, column=0, sticky="w")
             self.LayerLabels.append(label)
 
@@ -185,10 +191,30 @@ class StencilEditor(tk.Frame):
 
     def click_quantity_item(self, event):
 
-        try:
-            quantity = int(self.entryquantity.get())
-            if quantity <= 10:
-                self.layer_quantity = quantity
-            self.make_layer_gui()
-        except ValueError:
-            return
+        self.layer_quantity = self.quantityvar.get()
+        self.make_layer_gui()
+        self.prepare_stencils(None)
+
+    def save_stencil(self):
+        stencils.make_stencil(stencil_name=self.stencilname,
+                              quantity=self.layer_quantity,
+                              stencil_staging=self.stenciledit,
+                              stencil_configs=self.stencildir,
+                              colorize=self.colorize, #TODO
+                              relative_path=self.relative_path)
+
+    def load_stencil(self, event):
+
+        stencil_data = json.load(open(os.path.normpath(self.stencildir + "//" + self.stencilname + ".png")))
+
+        masks = stencil_data['mask']
+        self.layer_quantity = len(masks)
+        self.relative_path = stencil_data['path']
+        self.imagestencil = Image.open(self.default_patches + '//' + self.relative_path, "RGBA")
+
+        for index, mask in enumerate(masks):
+            layer = Raster.from_image(self.imagestencil)
+            layer.mask = np.array(mask)
+            layer.save(self.stenciledit + '//' + self.stencilname + '_' + str(index+1) + '.png')
+
+        self.make_layer_gui()
