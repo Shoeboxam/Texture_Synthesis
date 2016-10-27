@@ -9,8 +9,6 @@ from Interface.StencilEditor import StencilEditor
 
 import os, json
 
-import copy
-
 
 class App(tk.Frame):
     textures = []
@@ -66,6 +64,7 @@ class App(tk.Frame):
 
         self.Listbox = tk.Listbox(self.Frame2, selectmode="extended")
         self.Listbox.grid(row=2, column=0, sticky="nsew")
+        self.Listbox.configure(exportselection=False)
         self.Frame2.rowconfigure(2, weight=2)
         self.Frame2.columnconfigure(0, weight=1)
 
@@ -134,7 +133,6 @@ class App(tk.Frame):
         self.imagebox.image = imageselected
 
     def process_directory(self, parent, path, tree):
-
         for p in os.listdir(path):
             abspath = os.path.join(path + "//", p)
             isdir = os.path.isdir(abspath)
@@ -149,12 +147,25 @@ class App(tk.Frame):
         editor = tk.Toplevel()
         w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
         editor.geometry("%dx%d+0+0" % (w, h))
-        StencilEditor(editor,
+
+        selection = self.Listbox.curselection()
+
+        if selection:
+            items = [self.Listbox.get(selection) for selection in selection]
+            StencilEditor(editor,
                       stencil=self.Frame3.selection_get(),
                       stenciledit=settings.stencil_editing,
                       stencildir=settings.stencil_metadata,
-                      path=settings.default_patches)
+                      path=settings.default_patches,
+                      textures=items)
 
+        else:
+            StencilEditor(editor,
+                      stencil=self.Frame3.selection_get(),
+                      stenciledit=settings.stencil_editing,
+                      stencildir=settings.stencil_metadata,
+                      path=settings.default_patches,
+                      textures=self.textures)
 
 root = tk.Tk()
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()

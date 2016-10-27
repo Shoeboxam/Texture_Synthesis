@@ -15,13 +15,13 @@ class StencilEditor(tk.Frame):
 
     hues = [random.uniform(0, 1) for x in range(0, 10)]
 
-    def __init__(self, master, stencil, stenciledit, stencildir, path):
+    def __init__(self, master, stencil, stenciledit, stencildir, path, textures):
         tk.Frame.__init__(self, master)
         self.stencilname = stencil
         self.stenciledit = stenciledit
         self.stencildir = stencildir
         self.default_patches = path
-        path = path.replace('\\', '//')
+        self.path = path.replace('\\', '//')
 
         self.grid()
         self.master.title(stencil)
@@ -47,20 +47,18 @@ class StencilEditor(tk.Frame):
         self.entryname.grid(row=0, column=0, sticky="e")
         self.Frame1.rowconfigure(0)
 
-        self.Tree = ttk.Treeview(self.Frame1)
-        self.Tree.grid(row=3, column=0, sticky="nsew")
+        self.Listbox = tk.Listbox(self.Frame1)
+        self.Listbox.grid(row=3, column=0, sticky="nsew")
         self.Frame1.rowconfigure(3, weight=1)
 
-        self.Tree.bind("<<TreeviewSelect>>", self.prepare_stencils)
+        self.Listbox.bind("<<ListboxSelect>>", self.prepare_stencils)
 
-        self.Tree.heading('#0', text="Resources", anchor='w')
+        for path in textures:
+            self.Listbox.insert(0, path)
+        self.Listbox.selection_set(0)
 
-        ysb = ttk.Scrollbar(self.Frame1, orient='vertical', command=self.Tree.yview)
-        self.Tree.configure(yscroll=ysb.set)
-
-        root_node = self.Tree.insert('', 'end', text=path, open=True)
-        self.process_directory(root_node, path, self.Tree)
-
+        ysb = ttk.Scrollbar(self.Frame1, orient='vertical', command=self.Listbox.yview)
+        self.Listbox.configure(yscroll=ysb.set)
         ysb.grid(row=3, column=1, sticky='ns')
 
         # Frame 2
@@ -102,17 +100,8 @@ class StencilEditor(tk.Frame):
         self.LayerRecolor = []
 
         self.make_layer_gui()
-
-    def process_directory(self, parent, path, tree):
-
-        for p in os.listdir(path):
-            abspath = os.path.join(path + "//", p)
-            isdir = os.path.isdir(abspath)
-            if not isdir:
-                tree.insert(parent, 'end', text=p, tags=abspath, open=False)
-            else:
-                oid = tree.insert(parent, 'end', text=p, open=False)
-                self.process_directory(oid, abspath, tree)
+        
+        self.prepare_stencils(None)
 
     def image_masker(self):
         raster_layers = []
@@ -132,20 +121,17 @@ class StencilEditor(tk.Frame):
         if not os.path.exists(self.stenciledit):
             os.makedirs(self.stenciledit)
 
-        selitem = self.Tree.selection()[0]
+        selection = self.Listbox.get(self.Listbox.curselection()[0])
 
-        try:
-            relative_path = os.path.normpath(self.Tree.item(selitem, "tags")[0])
-        except IndexError:
-            return
+        absolutepath = os.path.normpath(self.path + "//" + selection)
 
-        name = self.Tree.item(selitem, "text")
+        name = os.path.basename(absolutepath)
         self.stencilname = name
         self.entryname.delete(0, "end")
         self.entryname.insert(0, name)
         self.master.title(name)
 
-        renderimage = Image.open(relative_path)
+        renderimage = Image.open(absolutepath)
 
         dim = min(renderimage.size)
 
@@ -161,7 +147,7 @@ class StencilEditor(tk.Frame):
             os.remove(stencilpath)
         self.stencilpaths.clear()
 
-        self.stencilimage = Image.open(relative_path)
+        self.stencilimage = Image.open(absolutepath)
 
         for i in range(self.layer_quantity):
             stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(i) + '.png'
