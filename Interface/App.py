@@ -89,18 +89,13 @@ class App(tk.Frame):
         self.Frame3.insert(0, "Create New Stencil...")
 
         for file in os.listdir(settings.stencil_metadata):
-            self.Frame3.insert(1, json.loads(open(file).read())['name'])
-
-        templates = os.listdir(settings.stencil_metadata)
-        for item in templates:
-            self.Frame3.insert(0, item)
+            self.Frame3.insert(1, json.loads(open(settings.stencil_metadata + '\\' + file).read())['name'].replace('.json', ''))
 
         self.Frame3.bind("<Double-Button-1>", self.click_stencil_edit)
 
     def click_tree_item(self, event):
         selitems = self.Tree.selection()
         self.textures.clear()
-
         if selitems:
             self.Listbox.delete(0, "end")
             for item in selitems:                             # Each selection
@@ -109,7 +104,7 @@ class App(tk.Frame):
                     for name in file_list:                        # Each file
                         key = (path + '\\' + name).replace(settings.default_patches, "")
                         self.textures.append(key)
-                        self.Listbox.insert(0, key)
+        self.click_search_item(None)
 
     def click_search_item(self, event):
         searchStr = self.Search.get().lower()
@@ -144,20 +139,26 @@ class App(tk.Frame):
                 self.process_directory(oid, abspath, tree)
 
     def click_stencil_edit(self, event):
-        editor = tk.Toplevel()
-        w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
-        editor.geometry("%dx%d+0+0" % (w, h))
-
         selection = self.Listbox.curselection()
-        if self.Frame3.curselection()[0] > 1:
+        if self.Frame3.curselection()[0] > 0:
+            editor = tk.Toplevel()
+            w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
+            editor.geometry("%dx%d+0+0" % (w, h))
+
+            selection_stencil = self.Frame3.get(self.Frame3.curselection())
             StencilEditor(editor,
-                          stencil=self.Frame3.selection_get(),
+                          stencil=selection_stencil,
                           stenciledit=settings.stencil_editing,
                           stencildir=settings.stencil_metadata,
                           default_patches=settings.default_patches,
-                          textures=None)
+                          textures=[json.load(open(
+                              settings.stencil_metadata + '//' + selection_stencil + '.json'))['path']])
 
-        if selection:
+        elif selection:
+            editor = tk.Toplevel()
+            w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
+            editor.geometry("%dx%d+0+0" % (w, h))
+
             items = [self.Listbox.get(selection) for selection in selection]
             StencilEditor(editor,
                       stencil=self.Frame3.selection_get(),
@@ -166,7 +167,11 @@ class App(tk.Frame):
                       default_patches=settings.default_patches,
                       textures=items)
 
-        else:
+        elif self.textures:
+            editor = tk.Toplevel()
+            w, h = int(editor.winfo_screenwidth()*1.7), int(editor.winfo_screenheight()*1.7)
+            editor.geometry("%dx%d+0+0" % (w, h))
+
             StencilEditor(editor,
                       stencil=self.Frame3.selection_get(),
                       stenciledit=settings.stencil_editing,

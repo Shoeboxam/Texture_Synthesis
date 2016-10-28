@@ -20,6 +20,11 @@ class StencilEditor(tk.Frame):
 
     def __init__(self, master, stencil, stenciledit, stencildir, default_patches, textures):
         tk.Frame.__init__(self, master)
+
+        self.LayerLabels = []
+        self.LayerButtons = []
+        self.LayerRecolor = []
+
         self.stencilname = stencil
         self.stenciledit = stenciledit
         self.stencildir = stencildir
@@ -30,11 +35,15 @@ class StencilEditor(tk.Frame):
 
         self.master.rowconfigure(0, weight=1)
 
+        self.imagestencil = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil.png")
+        self.imagestencilmasked = Image.open(
+            r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil_masked.png")
+
         try:
-            self.load_stencil(None)
+            self.load_stencil()
+            self.loaded = True
         except FileNotFoundError:
-            self.imagestencil = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil.png")
-            self.imagestencilmasked = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil_masked.png")
+            self.loaded = False
 
         # Frame 1
         self.master.columnconfigure(0, weight=1)
@@ -65,9 +74,6 @@ class StencilEditor(tk.Frame):
         self.imagebox.grid(row=0, column=0, sticky="ns")
         self.Frame2.rowconfigure(0, weight=1)
 
-        if self.stencil_data:
-            self.imagestencilmasked = self.image_masker()
-
         self.imagemaskbox = tk.Label(self.Frame2, image=ImageTk.PhotoImage(self.imagestencilmasked))
         self.imagemaskbox.grid(row=1, column=0, sticky="ns")
         self.Frame2.rowconfigure(1, weight=1)
@@ -89,7 +95,7 @@ class StencilEditor(tk.Frame):
         self.quantityvar = tk.IntVar(self.Frame3)
         self.quantityvar.set(self.layer_quantity)
 
-        self.optionquantity = tk.OptionMenu(self.Frame3, self.quantityvar, 1,2,3,4,5,6,7,8,9,10,
+        self.optionquantity = tk.OptionMenu(self.Frame3, self.quantityvar, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                                             command=self.click_quantity_item)
         self.optionquantity.grid(row=1, column=0, sticky="ne")
         self.Frame3.rowconfigure(1)
@@ -98,16 +104,16 @@ class StencilEditor(tk.Frame):
         self.LayerFrame.grid(row=2, column=0, sticky="nsew")
         self.Frame3.rowconfigure(2, weight=1)
 
-        self.LayerLabels = []
-        self.LayerButtons = []
-        self.LayerRecolor = []
-
         self.make_layer_gui()
         self.ButtonSave = tk.Button(self.Frame3, text="SAVE", command=self.save_stencil)
         self.ButtonSave.grid(row=3, column=0, sticky="nsew")
         self.Frame3.rowconfigure(3)
 
         self.prepare_stencils(None)
+        # if self.loaded:
+        #     self.update_stencils()
+        # else:
+        #     self.prepare_stencils(None)
 
     def image_masker(self):
         raster_layers = []
@@ -116,6 +122,7 @@ class StencilEditor(tk.Frame):
             image = Image.open(stencilpath)
             dim = min(image.size)
             image = image.crop((0, 0, dim, dim))
+            # image = image.resize((400,400), Image.NEAREST)
 
             layer = Raster.from_image(image, "RGBA")
             raster_layers.append(colorize(layer, self.hues[i], 0, .5, 1, 0, .5))
@@ -127,7 +134,7 @@ class StencilEditor(tk.Frame):
         if not os.path.exists(self.stenciledit):
             os.makedirs(self.stenciledit)
 
-        self.relative_path = self.Listbox.get(self.Listbox.curselection()[0])
+        self.relative_path = self.Listbox.get(self.Listbox.curselection())
 
         absolutepath = os.path.normpath(self.default_patches + "//" + self.relative_path)
 
@@ -153,12 +160,12 @@ class StencilEditor(tk.Frame):
             os.remove(stencilpath)
         self.stencilpaths.clear()
 
-        self.stencilimage = Image.open(absolutepath)
+        self.imagestencil = Image.open(absolutepath)
 
         for i in range(self.layer_quantity):
             stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(i+1) + '.png'
             self.stencilpaths.append(stencilpath)
-            self.stencilimage.save(stencilpath)
+            self.imagestencil.save(stencilpath)
 
         renderimage_masked = ImageTk.PhotoImage(self.image_masker())
 
@@ -193,28 +200,49 @@ class StencilEditor(tk.Frame):
 
         self.layer_quantity = self.quantityvar.get()
         self.make_layer_gui()
-        self.prepare_stencils(None)
+        self.update_stencils()
 
     def save_stencil(self):
         stencils.make_stencil(stencil_name=self.stencilname,
                               quantity=self.layer_quantity,
                               stencil_staging=self.stenciledit,
                               stencil_configs=self.stencildir,
-                              colorize=self.colorize, #TODO
+                              colorize=self.colorize,  # TODO
                               relative_path=self.relative_path)
 
-    def load_stencil(self, event):
-
-        stencil_data = json.load(open(os.path.normpath(self.stencildir + "//" + self.stencilname + ".png")))
-
+    def load_stencil(self):
+        stencil_data = json.load(open(os.path.normpath(self.stencildir + "\\" + self.stencilname + ".json")))
         masks = stencil_data['mask']
         self.layer_quantity = len(masks)
         self.relative_path = stencil_data['path']
-        self.imagestencil = Image.open(self.default_patches + '//' + self.relative_path, "RGBA")
+        self.imagestencil = Image.open(self.default_patches + '\\' + self.relative_path)
 
+        self.stencilpaths.clear()
         for index, mask in enumerate(masks):
             layer = Raster.from_image(self.imagestencil)
             layer.mask = np.array(mask)
-            layer.save(self.stenciledit + '//' + self.stencilname + '_' + str(index+1) + '.png')
+            stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(index+1) + '.png'
+            layer.save(stencilpath)
+            self.stencilpaths.append(stencilpath)
+
+    def update_stencils(self):
+
+        self.imagestencil = Image.open(os.path.normpath(self.default_patches + '\\' + self.relative_path))
+        renderphoto = ImageTk.PhotoImage(self.imagestencil.resize((400, 400), Image.NEAREST))
+
+        self.imagebox.configure(image=renderphoto)
+        self.imagebox.image = renderphoto
+
+        self.stencilpaths.clear()
+        for i in range(self.layer_quantity):
+            stencilpath = self.stenciledit + '\\' + self.stencilname + '_' + str(i+1) + '.png'
+            self.stencilpaths.append(stencilpath)
+            if not os.path.exists(stencilpath):
+                self.imagestencil.save(stencilpath)
+
+        renderimage_masked = ImageTk.PhotoImage(self.image_masker())
+
+        self.imagemaskbox.configure(image=renderimage_masked)
+        self.imagemaskbox.image = renderimage_masked
 
         self.make_layer_gui()

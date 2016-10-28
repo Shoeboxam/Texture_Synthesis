@@ -21,4 +21,4 @@ def make_stencil(stencil_name, quantity, stencil_staging, stencil_configs, color
                         path=relative_path)
 
     with open(stencil_configs + '//' + stencil_name + ".json", 'w') as output_file:
-        json.dump(stencil_data, output_file, sort_keys=True, indent=2)
+        json.dump(stencil_data, output_file, sort_keys=True)
