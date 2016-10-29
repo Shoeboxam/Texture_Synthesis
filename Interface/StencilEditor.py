@@ -206,7 +206,6 @@ class StencilEditor(tk.Frame):
                                       var=self.enable[i],
                                       command=lambda i1=i: self.toggle_checkbox(i1))
 
-
             checkbox.grid(row=i, column=1)
             self.LayerRecolor.append(checkbox)
 

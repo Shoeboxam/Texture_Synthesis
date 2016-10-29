@@ -6,9 +6,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 
 from Synthesizer.images import analyze_image
-
 from Raster.Raster import Raster
-
 from Interface.StencilEditor import StencilEditor
 
 import os, json
@@ -65,9 +63,17 @@ class App(tk.Frame):
 
         self.Search = tk.Entry(self.Frame2)
         self.Search.grid(row=1, column=0, sticky="w")
-        self.Frame2.rowconfigure(1)
-
         self.Search.bind("<KeyRelease>", self.click_search_item)
+
+        self.filterCategorized = tk.BooleanVar(self.Frame2, value=True)
+        checkbox = tk.Checkbutton(self.Frame2,
+                                  var=self.filterCategorized,
+                                  command=self.toggle_filter)
+        checkbox.grid(row=1, column=1, sticky='e')
+        label = tk.Label(self.Frame2, text='Hide mapped files')
+        label.grid(row=1, column=0, sticky='e')
+
+        self.Frame2.rowconfigure(1)
 
         self.Listbox = tk.Listbox(self.Frame2, selectmode="extended")
         self.Listbox.grid(row=2, column=0, sticky="nsew")
@@ -119,12 +125,16 @@ class App(tk.Frame):
         self.Listbox.delete(0, "end")
         for path in self.textures:
             if search_str in path.lower():
-                self.Listbox.insert(0, path)
+                mappingloc = os.path.normpath(settings.mappings_metadata_custom + '//' + path + '.json')
+                if not (self.filterCategorized.get() and os.path.exists(mappingloc)):
+                    self.Listbox.insert(0, path)
         # self.listbox.selection_set(0, "end")
 
     def click_listbox_item(self, event):
-
-        firstitem = self.Listbox.get(self.Listbox.curselection()[0])
+        try:
+            firstitem = self.Listbox.get(self.Listbox.curselection()[0])
+        except IndexError:
+            return
 
         imageselected = Image.open(settings.default_patches + '\\' + firstitem)
         dim = min(imageselected.size)
@@ -192,7 +202,6 @@ class App(tk.Frame):
             return
 
         stencil_name = self.Frame3.get(self.Frame3.curselection()[0])
-        print(stencil_name)
         stencil_data = json.load(open(os.path.normpath(settings.stencil_metadata + "\\" + stencil_name + ".json")))
         masks = stencil_data['mask']
 
@@ -239,10 +248,13 @@ class App(tk.Frame):
 
         try:
             index = self.Frame3.get(0, 'end').index(stencil_name)
-            self.Frame3.selection_set(index)
+            self.Frame3.select_set(index)
             self.Frame3.see(index)
         except ValueError:
             self.Frame3.selection_set(0)
+
+    def toggle_filter(self):
+        self.click_search_item(None)
 
 root = tk.Tk()
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()
