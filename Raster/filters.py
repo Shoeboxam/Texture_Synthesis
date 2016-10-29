@@ -27,7 +27,6 @@ def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opa
 
     return raster
 
-
 def contrast(raster, value_multiplier):
 
     raster.to_hsv()

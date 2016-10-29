@@ -8,13 +8,15 @@ from Raster.filters import colorize, composite
 from colorsys import hsv_to_rgb
 from Synthesizer.metadata import stencils
 
+import webbrowser
+
 
 class StencilEditor(tk.Frame):
     stencilpaths = []
     stencil_data = None
 
     layer_quantity = 1
-    colorize = []
+    colorize = [True]
 
     hues = [0.68, 0.32, 0.97, 0.50, 0.17, 0.86, 0.44, 0.09, 0.78, 0.57]
 
@@ -38,7 +40,7 @@ class StencilEditor(tk.Frame):
 
         self.imagestencil = Image.open(r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil.png")
         self.imagestencilmasked = Image.open(
-            r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil_masked.png")
+            r"C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\stencil.png")
 
         try:
             self.load_stencil()
@@ -89,6 +91,7 @@ class StencilEditor(tk.Frame):
         self.labelname.grid(row=0, column=0, sticky="w")
         self.entryname = tk.Entry(self.Frame3)
         self.entryname.grid(row=0, column=0, sticky="e")
+        self.entryname.insert(0, self.stencilname)
         self.Frame3.rowconfigure(0)
 
         self.labelquantity = tk.Label(self.Frame3, text="Quantity")
@@ -110,7 +113,10 @@ class StencilEditor(tk.Frame):
         self.ButtonSave.grid(row=3, column=0, sticky="nsew")
         self.Frame3.rowconfigure(3)
 
-        self.prepare_stencils(None)
+        if self.loaded:
+            self.update_stencils()
+        else:
+            self.prepare_stencils(None)
 
     def image_masker(self):
         raster_layers = []
@@ -119,10 +125,12 @@ class StencilEditor(tk.Frame):
             image = Image.open(stencilpath)
             dim = min(image.size)
             image = image.crop((0, 0, dim, dim))
-            # image = image.resize((400,400), Image.NEAREST)
 
             layer = Raster.from_image(image, "RGBA")
-            raster_layers.append(colorize(layer, self.hues[i], 0, .5, 1, 0, .5))
+            if self.colorize[i]:
+                layer = colorize(layer, self.hues[i], 1, .5, 1, .7, .5)
+
+            raster_layers.append(layer)
 
         return composite(raster_layers).get_image().resize((400, 400), Image.NEAREST)
 
@@ -137,8 +145,11 @@ class StencilEditor(tk.Frame):
         self.entryname.delete(0, "end")
         self.entryname.insert(0, name)
         self.master.title("Editing stencil: " + name)
-
-        renderimage = Image.open(absolutepath)
+        try:
+            renderimage = Image.open(absolutepath)
+        except OSError:
+            self.Listbox.delete(self.Listbox.curselection())
+            return
 
         dim = min(renderimage.size)
 
@@ -176,24 +187,46 @@ class StencilEditor(tk.Frame):
         self.LayerLabels.clear()
         self.LayerRecolor.clear()
 
+        self.enable = []
+
         for i in range(self.layer_quantity):
             label = tk.Label(self.LayerFrame, text="Layer " + str(i+1))
             label.grid(row=i, column=0, sticky="w")
             self.LayerLabels.append(label)
 
-            checkbox = tk.Checkbutton(self.LayerFrame)
+            self.enable.append(tk.BooleanVar(self.Frame3))
+            if (i < len(self.colorize)):
+                self.enable[i].set(self.colorize[i])
+            else:
+                self.enable[i].set(True)
+
+            checkbox = tk.Checkbutton(self.LayerFrame,
+                                      var=self.enable[i],
+                                      command=lambda i1=i: self.toggle_checkbox(i1))
+
+
             checkbox.grid(row=i, column=1)
             self.LayerRecolor.append(checkbox)
 
             r, g, b = hsv_to_rgb(self.hues[i], 1, .8)
             color = '#%02x%02x%02x' % (int(r*255), int(g*255), int(b*255))
-            button = tk.Button(self.LayerFrame, bg=color, text="Edit")
+            button = tk.Button(self.LayerFrame, bg=color, text="Edit", command=lambda i1=i: self.open_texture(i1))
             button.grid(row=i, column=3, sticky="e")
             self.LayerButtons.append(button)
+
+    def open_texture(self, index):
+        path = os.path.normpath(self.stenciledit + '\\' + self.stencilname + '_' + str(index + 1) + '.png')
+        webbrowser.open(path)
+
+    def toggle_checkbox(self, index):
+        self.colorize[index] = self.enable[index].get()
+        self.update_stencils()
 
     def click_quantity_item(self, event):
 
         self.layer_quantity = self.quantityvar.get()
+        while self.layer_quantity >= len(self.colorize):
+            self.colorize.append(True)
         self.make_layer_gui()
         self.update_stencils()
 
@@ -202,7 +235,7 @@ class StencilEditor(tk.Frame):
                               quantity=self.layer_quantity,
                               stencil_staging=self.stenciledit,
                               stencil_configs=self.stencildir,
-                              colorize=self.colorize,  # TODO
+                              colorize=self.colorize,
                               relative_path=self.relative_path)
         self.on_closing()
 
@@ -212,6 +245,9 @@ class StencilEditor(tk.Frame):
         self.layer_quantity = len(masks)
         self.relative_path = stencil_data['path']
         self.imagestencil = Image.open(self.default_patches + '\\' + self.relative_path)
+        self.stencilname = stencil_data['name']
+        self.master.title("Editing stencil: " + self.stencilname)
+        self.colorize = stencil_data['colorize']
 
         self.stencilpaths.clear()
         for index, mask in enumerate(masks):
