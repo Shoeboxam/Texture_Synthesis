@@ -16,6 +16,7 @@ class Settings:
         self.resource_pack = self.home + '\\sources\\resource_pack\\'
         self.key_repository = self.home + '\\sources\\key_repository\\'
         self.mods_directory = self.home + '\\sources\\mods\\'
+        self.resource_skeletons = self.home + '\\sources\\resource_skeletons\\'
 
         self.stencil_editing = self.home + '\\staging\\stencil_editing\\'
         self.default_patches = self.home + '\\staging\\default_patches\\'
