@@ -93,6 +93,7 @@ class StencilEditor(tk.Frame):
         self.labelname.grid(row=0, column=0, sticky="w")
         self.entryname = tk.Entry(self.Frame3)
         self.entryname.grid(row=0, column=0, sticky="e")
+        self.entryname.bind("<KeyRelease>", self.rename)
         self.entryname.insert(0, self.stencilname)
         self.Frame3.rowconfigure(0)
 
@@ -279,6 +280,9 @@ class StencilEditor(tk.Frame):
         self.imagemaskbox.image = renderimage_masked
 
         self.make_layer_gui()
+
+    def rename(self, event):
+        self.stencilname = self.entryname.get()
 
     def on_closing(self):
         for i in range(10):

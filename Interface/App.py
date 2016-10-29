@@ -20,6 +20,7 @@ class App(tk.Frame):
         tk.Frame.__init__(self, master)
         self.grid()
         self.master.title("Synthesizer")
+        self.master.iconbitmap(r'C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\favicon.ico')
         self.master.bind("<FocusIn>", self.update_stencil_listing)
         if os.name == 'nt':
             self.master.wm_state('zoomed')
@@ -105,7 +106,7 @@ class App(tk.Frame):
         self.update_stencil_listing(None)
 
         self.Frame3.bind("<Button-3>", self.click_stencil_edit)
-        self.Frame3.bind("<<ListboxSelect>>", self.click_stencil_select)
+        self.Frame3.bind("<Double-Button-1>", self.click_stencil_select)
 
     def click_tree_item(self, event):
         selitems = self.Tree.selection()
@@ -117,7 +118,8 @@ class App(tk.Frame):
                 for path, subdirs, file_list in os.walk(folder):  # Each folder
                     for name in file_list:                        # Each file
                         key = (path + '\\' + name).replace(settings.default_patches, "")
-                        self.textures.append(key)
+                        if not key in self.textures:
+                            self.textures.append(key)
         self.click_search_item(None)
 
     def click_search_item(self, event):
@@ -232,6 +234,7 @@ class App(tk.Frame):
             # Save json file
             with open(output_path + "\\" + os.path.basename(relative_path) + ".json", 'w') as output_file:
                 json.dump(meta_dict, output_file, sort_keys=True, indent=2)
+        self.click_search_item(None)
 
     def update_stencil_listing(self, event):
         try:
