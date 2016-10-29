@@ -26,6 +26,7 @@ class StencilEditor(tk.Frame):
             self.master.wm_state('zoomed')
         self.master = master
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.master.iconbitmap(r'C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\favicon.ico')
         self.LayerLabels = []
         self.LayerButtons = []
         self.LayerRecolor = []
