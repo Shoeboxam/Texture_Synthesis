@@ -20,7 +20,8 @@ class StencilEditor(tk.Frame):
 
     def __init__(self, master, stencil, stenciledit, stencildir, default_patches, textures):
         tk.Frame.__init__(self, master)
-
+        self.master = master
+        master.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.LayerLabels = []
         self.LayerButtons = []
         self.LayerRecolor = []
@@ -110,10 +111,6 @@ class StencilEditor(tk.Frame):
         self.Frame3.rowconfigure(3)
 
         self.prepare_stencils(None)
-        # if self.loaded:
-        #     self.update_stencils()
-        # else:
-        #     self.prepare_stencils(None)
 
     def image_masker(self):
         raster_layers = []
@@ -131,9 +128,6 @@ class StencilEditor(tk.Frame):
 
     def prepare_stencils(self, event):
 
-        if not os.path.exists(self.stenciledit):
-            os.makedirs(self.stenciledit)
-
         self.relative_path = self.Listbox.get(self.Listbox.curselection())
 
         absolutepath = os.path.normpath(self.default_patches + "//" + self.relative_path)
@@ -142,7 +136,7 @@ class StencilEditor(tk.Frame):
         self.stencilname = name
         self.entryname.delete(0, "end")
         self.entryname.insert(0, name)
-        self.master.title(name)
+        self.master.title("Editing stencil: " + name)
 
         renderimage = Image.open(absolutepath)
 
@@ -157,7 +151,8 @@ class StencilEditor(tk.Frame):
         self.imagebox.image = renderphoto
 
         for stencilpath in self.stencilpaths:
-            os.remove(stencilpath)
+            if os.path.exists(stencilpath):
+                os.remove(stencilpath)
         self.stencilpaths.clear()
 
         self.imagestencil = Image.open(absolutepath)
@@ -209,6 +204,7 @@ class StencilEditor(tk.Frame):
                               stencil_configs=self.stencildir,
                               colorize=self.colorize,  # TODO
                               relative_path=self.relative_path)
+        self.on_closing()
 
     def load_stencil(self):
         stencil_data = json.load(open(os.path.normpath(self.stencildir + "\\" + self.stencilname + ".json")))
@@ -246,3 +242,12 @@ class StencilEditor(tk.Frame):
         self.imagemaskbox.image = renderimage_masked
 
         self.make_layer_gui()
+
+    def on_closing(self):
+        for i in range(10):
+            stencilpath_temp = os.path.normpath(self.stenciledit + '//' + self.stencilname + '_' + str(i) + '.png')
+
+            if os.path.exists(stencilpath_temp):
+                os.remove(stencilpath_temp)
+
+        self.master.destroy()
