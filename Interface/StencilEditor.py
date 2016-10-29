@@ -22,6 +22,8 @@ class StencilEditor(tk.Frame):
 
     def __init__(self, master, stencil, stenciledit, stencildir, default_patches, textures):
         tk.Frame.__init__(self, master)
+        if os.name == 'nt':
+            self.master.wm_state('zoomed')
         self.master = master
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.LayerLabels = []

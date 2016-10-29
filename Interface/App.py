@@ -5,6 +5,10 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 
+from Synthesizer.images import analyze_image
+
+from Raster.Raster import Raster
+
 from Interface.StencilEditor import StencilEditor
 
 import os, json
@@ -19,6 +23,8 @@ class App(tk.Frame):
         self.grid()
         self.master.title("Synthesizer")
         self.master.bind("<FocusIn>", self.update_stencil_listing)
+        if os.name == 'nt':
+            self.master.wm_state('zoomed')
 
         self.master.rowconfigure(0, weight=1)
 
@@ -87,9 +93,13 @@ class App(tk.Frame):
         if not os.path.exists(settings.stencil_metadata):
             os.makedirs(settings.stencil_metadata)
 
+        if not os.path.exists(settings.mappings_metadata):
+            os.makedirs(settings.mappings_metadata)
+
         self.update_stencil_listing(None)
 
-        self.Frame3.bind("<Double-Button-1>", self.click_stencil_edit)
+        self.Frame3.bind("<Button-3>", self.click_stencil_edit)
+        self.Frame3.bind("<<ListboxSelect>>", self.click_stencil_select)
 
     def click_tree_item(self, event):
         selitems = self.Tree.selection()
@@ -176,6 +186,43 @@ class App(tk.Frame):
                           stencildir=settings.stencil_metadata,
                           default_patches=settings.default_patches,
                           textures=self.textures)
+
+    def click_stencil_select(self, event):
+        if self.Frame3.curselection()[0] == 0:
+            return
+
+        stencil_name = self.Frame3.get(self.Frame3.curselection()[0])
+        print(stencil_name)
+        stencil_data = json.load(open(os.path.normpath(settings.stencil_metadata + "\\" + stencil_name + ".json")))
+        masks = stencil_data['mask']
+
+        for selection in self.Listbox.curselection():
+            relative_path = self.Listbox.get(selection)
+            image = Raster.from_image(Image.open(
+                settings.default_patches + '//' + relative_path).resize(stencil_data['shape'], Image.NEAREST), "RGBA")
+
+
+            segment_metalist = []
+            for ident, mask in enumerate(masks):
+                image.mask = mask
+                segment_data = analyze_image(image)
+                segment_data['id'] = ident
+                segment_metalist.append(segment_data)
+
+            meta_dict = {
+                'group_name': stencil_name,
+                'segment_dicts': segment_metalist
+            }
+
+            output_path = os.path.split(settings.mappings_metadata_custom + relative_path)[0]
+
+            # Create folder structure
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            # Save json file
+            with open(output_path + "\\" + os.path.basename(relative_path) + ".json", 'w') as output_file:
+                json.dump(meta_dict, output_file, sort_keys=True, indent=2)
 
     def update_stencil_listing(self, event):
         try:

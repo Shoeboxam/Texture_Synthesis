@@ -27,6 +27,7 @@ def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opa
 
     return raster
 
+
 def contrast(raster, value_multiplier):
 
     raster.to_hsv()
@@ -198,6 +199,7 @@ def merge_similar(raster_list, layer_map=None):
 
 def composite(raster_list):
     """Combine all input layers with additive alpha blending"""
+    # Does not clip- this filter blends rasters instead.
     channel_count = Raster.channel_depth[raster_list[0].mode]
 
     pixel_layers = []

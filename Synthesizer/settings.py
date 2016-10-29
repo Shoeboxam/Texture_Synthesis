@@ -26,6 +26,7 @@ class Settings:
         self.template_metadata = self.home + '\\metadata\\templates\\'
         self.mappings_metadata = self.home + '\\metadata\\mappings\\'
         self.bindings_metadata = self.home + '\\metadata\\bindings\\'
+        self.mappings_metadata_custom = self.home + '\\metadata\\mappings_custom\\'
 
         self.image_preprocess = self.home + '\\metadata\\preprocess.json'
         self.image_network = self.home + '\\metadata\\image_graph.json'
