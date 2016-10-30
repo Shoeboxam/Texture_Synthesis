@@ -3,12 +3,10 @@ from Synthesizer.settings import Settings
 from Interface.MappingEditor import MappingEditor
 from Synthesizer.sources.files import create_default
 from Raster.Raster import Raster
+
 import json
-
 import webbrowser
-
 import os
-
 import tkinter as tk
 
 
@@ -31,8 +29,7 @@ class App(tk.Frame):
 
         # Frame 1
         self.Frame1 = tk.Frame(master)
-        self.Frame1.grid(row=0, column=0, sticky="nsew")
-        self.master.columnconfigure(0, weight=1)
+        self.Frame1.grid(row=0, column=0, sticky="nsw")
 
         labelhome = tk.Label(self.Frame1, text="Home")
         labelhome.grid(row=0, column=0, sticky='w')
@@ -92,7 +89,7 @@ class App(tk.Frame):
         self.Frame2.grid(row=0, column=1, sticky="nsew")
         self.master.columnconfigure(1, weight=1)
         self.Frame2.rowconfigure(0, weight=1)
-        self.Frame2.columnconfigure(0,weight=1)
+        self.Frame2.columnconfigure(0, weight=1)
 
         self.ResourcepackListing = tk.Listbox(self.Frame2, selectmode="extended")
         self.ResourcepackListing.grid(row=0, column=0, sticky='nsew')
@@ -101,13 +98,20 @@ class App(tk.Frame):
 
         # Frame 3
         self.Frame3 = tk.Frame(master)
-        self.Frame3.grid(row=0, column=2, sticky="nsew")
+        self.Frame3.grid(row=0, column=2, sticky="news")
         self.master.columnconfigure(2, weight=1)
-        self.Frame3.rowconfigure(0, weight=1)
-        self.Frame3.columnconfigure(0,weight=1)
+        self.Frame3.columnconfigure(0, weight=1)
 
         self.synthesizebutton = tk.Button(self.Frame3, text='SYNTHESIZE', command=self.synthesize)
-        self.synthesizebutton.grid(row=0, column=0, sticky='ew')
+        self.synthesizebutton.grid(row=0, column=0, sticky='new')
+
+        self.SynthLog = tk.Text(self.Frame3)
+        ScrollBar = tk.Scrollbar(self.Frame3)
+        ScrollBar.config(command=self.SynthLog.yview)
+        self.SynthLog.config(yscrollcommand=ScrollBar.set)
+        ScrollBar.grid(row=1, column=0, sticky='nse')
+        self.SynthLog.grid(row=1, column=0, sticky='nsew')
+        self.Frame3.rowconfigure(1, weight=1)
 
     def edit_mappings(self):
         editor = tk.Toplevel()
@@ -164,17 +168,25 @@ class App(tk.Frame):
         if selection[0] == 0:
             if not os.path.exists(self.settings.resource_skeletons + 'New_Resourcepack'):
                 os.makedirs(self.settings.resource_skeletons + 'New_Resourcepack')
+            resourcepack_folder = 'New_Resourcepack'
+        else:
+            resourcepack_folder = self.ResourcepackListing.get(selection[0])
 
-            for stencil in os.listdir(self.settings.stencil_metadata):
-                stencil_data = json.load(open(self.settings.stencil_metadata + '\\' + stencil))
-                masks = stencil_data['mask']
-                for id, mask in enumerate(masks):
-                    layer = Raster.from_path(self.settings.default_patches + '\\' + stencil_data['path'], "RGBA")
-                    layer.mask = mask
+        for stencil in os.listdir(self.settings.stencil_metadata):
+            stencil_data = json.load(open(self.settings.stencil_metadata + '\\' + stencil))
+            masks = stencil_data['mask']
 
-                    path = self.settings.resource_skeletons + \
-                           'New_Resourcepack\\' + stencil.replace('.json', '') + '_' + str(id+1) + '.png'
-                    layer.save(path)
+            for id, mask in enumerate(masks):
+                path = self.settings.resource_skeletons + \
+                       resourcepack_folder + '\\' + stencil.replace('.json', '') + '_' + str(id+1) + '.png'
+                if os.path.exists(path):
+                    continue
+
+                layer = Raster.from_path(self.settings.default_patches + '\\' + stencil_data['path'], "RGBA")
+                layer.mask = mask
+                layer.save(path)
+
+        self.update_resourcepack_listing(None)
 
 root = tk.Tk()
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()
