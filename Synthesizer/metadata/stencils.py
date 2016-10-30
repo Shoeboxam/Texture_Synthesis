@@ -34,6 +34,8 @@ def apply_stencil(data, paths, resourcepack):
         segment = Raster.from_path(
             paths.resource_skeletons + '//' + resourcepack + '//'
             + json_data['group_name'] + '_' + str(cluster_data['id']+1) + '.png', "RGBA")
+        if not cluster_data['colorize']:
+            image_components.append(segment)
 
         # Adjust contrast
         contrast_mult = abs(analyze.variance(segment, 'V') - cluster_data['variance']) * .1

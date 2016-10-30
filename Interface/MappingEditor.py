@@ -213,10 +213,17 @@ class MappingEditor(tk.Frame):
 
             segment_metalist = []
             for ident, mask in enumerate(masks):
-                image.mask = mask
-                segment_data = analyze_image(image)
-                segment_data['id'] = ident
-                segment_metalist.append(segment_data)
+                if stencil_data['colorize'][ident]:
+                    image.mask = mask
+                    segment_data = analyze_image(image)
+                    segment_data['id'] = ident
+                    segment_data['colorize'] = True
+                    segment_metalist.append(segment_data)
+                else:
+                    segment_data = {}
+                    segment_data['id'] = ident
+                    segment_data['colorize'] = False
+                    segment_metalist.append(segment_data)
 
             meta_dict = {
                 'group_name': stencil_name,
