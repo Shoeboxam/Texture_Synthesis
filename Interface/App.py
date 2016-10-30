@@ -2,7 +2,9 @@ from Synthesizer.sources import files
 from Synthesizer.settings import Settings
 from Interface.MappingEditor import MappingEditor
 from Synthesizer.sources.files import create_default
+from Synthesizer.metadata.stencils import apply_stencil
 from Raster.Raster import Raster
+from Utilities.vectorize import vectorize
 
 import json
 import webbrowser
@@ -12,15 +14,17 @@ import tkinter as tk
 
 class App(tk.Frame):
 
-    settings = Settings(r"C:/Users/mike_000/Documents/Pycharm/Texture_Synthesis/Synthesizer/config.json")
-    if not (os.path.exists(settings.default_patches)):
-        files.create_default(settings.mods_directory)
-
-    def __init__(self, master):
+    def __init__(self, master, settings):
         tk.Frame.__init__(self, master)
+
+        self.settings = settings
+        if not (os.path.exists(settings.default_patches)):
+            files.create_default(settings.mods_directory)
+
         self.grid()
         self.master.title("Synthesizer")
         self.master.iconbitmap(r'C:\Users\mike_000\Documents\Pycharm\Texture_Synthesis\Interface\favicon.ico')
+
         self.master.bind("<FocusIn>", self.update_resourcepack_listing)
         if os.name == 'nt':
             self.master.wm_state('zoomed')
@@ -34,43 +38,43 @@ class App(tk.Frame):
         labelhome = tk.Label(self.Frame1, text="Home")
         labelhome.grid(row=0, column=0, sticky='w')
         self.homefolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.home,
-                                              command=self.open_home)
+                                          text=self.settings.home,
+                                          command=self.open_home)
         self.homefolderbutton.grid(row=0, column=1, sticky='we')
 
         labelresourcepack = tk.Label(self.Frame1, text="Resourcepacks")
         labelresourcepack.grid(row=1, column=0, sticky='w')
         self.resourcefolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.resource_skeletons.replace(self.settings.home,''),
+                                              text=self.settings.resource_skeletons.replace(self.settings.home, ''),
                                               command=self.open_resource_skeletons)
         self.resourcefolderbutton.grid(row=1, column=1, sticky='we')
 
         labelmappings = tk.Label(self.Frame1, text="Mappings")
         labelmappings.grid(row=2, column=0, sticky='w')
         self.mappingsfolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.mappings_metadata_custom.replace(self.settings.home,''),
+                                              text=self.settings.mappings_metadata_custom.replace(self.settings.home, ''),
                                               command=self.open_mappings)
         self.mappingsfolderbutton.grid(row=2, column=1, sticky='we')
 
         labelstencils = tk.Label(self.Frame1, text="Stencils")
         labelstencils.grid(row=3, column=0, sticky='w')
         self.stencilsfolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.stencil_metadata.replace(self.settings.home,''),
+                                              text=self.settings.stencil_metadata.replace(self.settings.home, ''),
                                               command=self.open_stencils)
         self.stencilsfolderbutton.grid(row=3, column=1, sticky='we')
 
         labelmods = tk.Label(self.Frame1, text="Mods")
         labelmods.grid(row=4, column=0, sticky='w')
         self.modsfolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.mods_directory.replace(self.settings.home,''),
-                                              command=self.open_mods)
+                                          text=self.settings.mods_directory.replace(self.settings.home, ''),
+                                          command=self.open_mods)
         self.modsfolderbutton.grid(row=4, column=1, sticky='wen')
 
         labeloutput = tk.Label(self.Frame1, text="Output")
         labeloutput.grid(row=5, column=0, sticky='w')
         self.outputfolderbutton = tk.Button(self.Frame1,
-                                              text=self.settings.output_path.replace(self.settings.home,''),
-                                              command=self.open_output)
+                                            text=self.settings.output_path.replace(self.settings.home, ''),
+                                            command=self.open_output)
         self.outputfolderbutton.grid(row=5, column=1, sticky='we')
 
         splitter = tk.Label(self.Frame1, text='')
@@ -93,8 +97,9 @@ class App(tk.Frame):
 
         self.ResourcepackListing = tk.Listbox(self.Frame2, selectmode="extended")
         self.ResourcepackListing.grid(row=0, column=0, sticky='nsew')
+        self.ResourcepackListing.configure(exportselection=False)
 
-        self.ResourcepackListing.bind('<<ListboxSelect>>', self.click_resourcepack)
+        self.ResourcepackListing.bind("<Double-Button-1>", self.click_resourcepack)
 
         # Frame 3
         self.Frame3 = tk.Frame(master)
@@ -106,20 +111,20 @@ class App(tk.Frame):
         self.synthesizebutton.grid(row=0, column=0, sticky='new')
 
         self.SynthLog = tk.Text(self.Frame3)
-        ScrollBar = tk.Scrollbar(self.Frame3)
-        ScrollBar.config(command=self.SynthLog.yview)
-        self.SynthLog.config(yscrollcommand=ScrollBar.set)
-        ScrollBar.grid(row=1, column=0, sticky='nse')
+        scrollbar = tk.Scrollbar(self.Frame3)
+        scrollbar.config(command=self.SynthLog.yview)
+        self.SynthLog.config(yscrollcommand=scrollbar.set)
+        scrollbar.grid(row=1, column=0, sticky='nse')
         self.SynthLog.grid(row=1, column=0, sticky='nsew')
         self.Frame3.rowconfigure(1, weight=1)
 
     def edit_mappings(self):
         editor = tk.Toplevel()
-        w, h = editor.winfo_screenwidth(), editor.winfo_screenheight()
-        editor.geometry("%dx%d+0+0" % (w, h))
+        w_e, h_e = editor.winfo_screenwidth(), editor.winfo_screenheight()
+        editor.geometry("%dx%d+0+0" % (w_e, h_e))
 
-        app = MappingEditor(editor, self.settings)
-        app.mainloop()
+        mapedit = MappingEditor(editor, self.settings)
+        mapedit.mainloop()
 
     def generate_defaults(self):
         create_default(self.settings)
@@ -157,11 +162,26 @@ class App(tk.Frame):
     def update_resourcepack_listing(self, event):
         self.ResourcepackListing.delete(0, 'end')
         self.ResourcepackListing.insert(0, 'Create New Resourcepack...')
+        self.ResourcepackListing.selection_set(0)
         for folder in os.listdir(self.settings.resource_skeletons):
             self.ResourcepackListing.insert(1, folder)
 
     def synthesize(self):
-        pass
+        resourcepacks = self.ResourcepackListing.curselection()
+        for pack in resourcepacks:
+            rp_folder = self.ResourcepackListing.get(pack)
+            if rp_folder is "Create New Resourcepack...":
+                continue
+            stencil_paths = []
+            for root, folders, files in os.walk(self.settings.mappings_metadata_custom):
+                for image_file in files:
+                    full_path = os.path.join(root, image_file)
+
+                    with open(full_path, 'r') as json_file:
+                        mapping_data = json.load(json_file)
+                        stencil_paths.append((full_path, mapping_data))
+
+            vectorize(stencil_paths, apply_stencil, [self.settings, rp_folder])
 
     def click_resourcepack(self, event):
         selection = self.ResourcepackListing.curselection()
@@ -176,9 +196,9 @@ class App(tk.Frame):
             stencil_data = json.load(open(self.settings.stencil_metadata + '\\' + stencil))
             masks = stencil_data['mask']
 
-            for id, mask in enumerate(masks):
+            for ident, mask in enumerate(masks):
                 path = self.settings.resource_skeletons + \
-                       resourcepack_folder + '\\' + stencil.replace('.json', '') + '_' + str(id+1) + '.png'
+                       resourcepack_folder + '\\' + stencil.replace('.json', '') + '_' + str(ident+1) + '.png'
                 if os.path.exists(path):
                     continue
 
@@ -186,11 +206,13 @@ class App(tk.Frame):
                 layer.mask = mask
                 layer.save(path)
 
-        self.update_resourcepack_listing(None)
 
-root = tk.Tk()
-w, h = root.winfo_screenwidth(), root.winfo_screenheight()
-root.geometry("%dx%d+0+0" % (w, h))
+if __name__ == '__main__':
+    settings = Settings(r"C:/Users/mike_000/Documents/Pycharm/Texture_Synthesis/Synthesizer/config.json")
 
-app = App(root)
-app.mainloop()
+    root = tk.Tk()
+    w, h = root.winfo_screenwidth(), root.winfo_screenheight()
+    root.geometry("%dx%d+0+0" % (w, h))
+
+    app = App(root, settings)
+    app.mainloop()

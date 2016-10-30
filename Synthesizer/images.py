@@ -36,6 +36,68 @@ def populate_images(paths, binding_ids):
     vectorize(template_paths, apply_template, [paths])
 
 
+def analyze_image(image, template=None, granularity=10):
+    colors = analyze.color_extract(image, granularity)
+
+    hues = []
+    sats = []
+    vals = []
+
+    for color in colors:
+        r, g, b, a = color
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        hues.append(h)
+        sats.append(s)
+        vals.append(v)
+
+    hues = math_utilities.circular_sort(list(set(hues)))
+    sats = sorted(list(set(sats)))[::-1]
+    vals = sorted(list(set(vals)))
+
+    data_variance = analyze.variance(image, 'V')
+    lightness = analyze.mean(image, 'V')
+
+    data = {
+        'hues': hues,
+        'sats': sats,
+        'vals': vals,
+        'lightness': lightness,
+        'variance': data_variance}
+
+    # Equivalence flag
+    if template is not None:
+        equivalent = False
+
+        image.to_rgb()
+        template.to_rgb()
+
+        print('\nImage: ' + image.name +
+              '\nTemplate: ' + template.name +
+              '\nDifference: ' + str(np.sum(image.colors - template.colors)))
+        if round(np.sum(image.colors - template.colors), 2) == 0.:
+            equivalent = True
+        data['equivalent'] = equivalent
+
+    return data
+
+
+def load_paths(root, paths):
+    raster_dict = {}
+
+    for path in paths:
+        if path.endswith('.png'):
+            try:
+                candidate = Raster.from_path(root + path, 'RGBA')
+
+                # Categorize images by thresholded layer mask
+                raster_dict[path.replace(root, "")] = candidate
+
+            except OSError:
+                continue
+
+    return raster_dict
+
+
 def apply_template(data, paths):
     mapping_path, json_data, binding_json_data = data
     template_path = paths.resource_pack + '\\'.join(pathlib.Path(binding_json_data['relative_path']).parts[1:])
@@ -119,65 +181,3 @@ def apply_template(data, paths):
         os.makedirs(os.path.split(full_path_output)[0])
 
     output_image.get_image().save(full_path_output)
-
-
-def analyze_image(image, template=None, granularity=10):
-    colors = analyze.color_extract(image, granularity)
-
-    hues = []
-    sats = []
-    vals = []
-
-    for color in colors:
-        r, g, b, a = color
-        h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        hues.append(h)
-        sats.append(s)
-        vals.append(v)
-
-    hues = math_utilities.circular_sort(list(set(hues)))
-    sats = sorted(list(set(sats)))[::-1]
-    vals = sorted(list(set(vals)))
-
-    data_variance = analyze.variance(image, 'V')
-    lightness = analyze.mean(image, 'V')
-
-    data = {
-        'hues': hues,
-        'sats': sats,
-        'vals': vals,
-        'lightness': lightness,
-        'variance': data_variance}
-
-    # Equivalence flag
-    if template is not None:
-        equivalent = False
-
-        image.to_rgb()
-        template.to_rgb()
-
-        print('\nImage: ' + image.name +
-              '\nTemplate: ' + template.name +
-              '\nDifference: ' + str(np.sum(image.colors - template.colors)))
-        if round(np.sum(image.colors - template.colors), 2) == 0.:
-            equivalent = True
-        data['equivalent'] = equivalent
-
-    return data
-
-
-def load_paths(root, paths):
-    raster_dict = {}
-
-    for path in paths:
-        if path.endswith('.png'):
-            try:
-                candidate = Raster.from_path(root + path, 'RGBA')
-
-                # Categorize images by thresholded layer mask
-                raster_dict[path.replace(root, "")] = candidate
-
-            except OSError:
-                continue
-
-    return raster_dict
