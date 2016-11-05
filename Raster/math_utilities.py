@@ -112,3 +112,10 @@ def polyfit(x, y):
 
 def polysolve(coeff, x):
     return np.polyval(coeff, x)
+
+
+def cylindrical_norm(point_a, point_b):
+    r1, theta1, z1 = point_a
+    r2, theta2, z2 = point_b
+    return np.sqrt(r1**2 + r2**2 - 2 * r1 * r2 * cos(theta2-theta1) + (z2 - z1)**2)
+

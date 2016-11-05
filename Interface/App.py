@@ -118,6 +118,8 @@ class App(tk.Frame):
         self.SynthLog.grid(row=1, column=0, sticky='nsew')
         self.Frame3.rowconfigure(1, weight=1)
 
+        self.ResourcepackListing.focus_set()
+
     def edit_mappings(self):
         editor = tk.Toplevel()
         w_e, h_e = editor.winfo_screenwidth(), editor.winfo_screenheight()
@@ -160,11 +162,24 @@ class App(tk.Frame):
         webbrowser.open(self.settings.output_path)
 
     def update_resourcepack_listing(self, event):
+
+        try:
+            rp_name = self.ResourcepackListing.get(self.ResourcepackListing.curselection()[0])
+        except IndexError:
+            rp_name = 'Create New Resourcepack...'
+
         self.ResourcepackListing.delete(0, 'end')
         self.ResourcepackListing.insert(0, 'Create New Resourcepack...')
         self.ResourcepackListing.selection_set(0)
         for folder in os.listdir(self.settings.resource_skeletons):
             self.ResourcepackListing.insert(1, folder)
+
+        try:
+            index = self.ResourcepackListing.get(0, 'end').index(rp_name)
+            self.ResourcepackListing.select_set(index)
+            self.ResourcepackListing.see(index)
+        except ValueError:
+            self.ResourcepackListing.selection_set(0)
 
     def synthesize(self):
         resourcepacks = self.ResourcepackListing.curselection()

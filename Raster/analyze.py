@@ -36,6 +36,8 @@ def variance(raster, channel=None):
 
 def color_extract(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
+    # Cluster center
+    # mu = 0
 
     representative_colors = []
 

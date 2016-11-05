@@ -4,6 +4,7 @@ import os
 from Raster.Raster import Raster
 from Raster import filters, analyze, math_utilities
 import numpy as np
+import math
 
 
 def make_stencil(stencil_name, quantity, stencil_staging, stencil_configs, colorize, relative_path):
@@ -36,37 +37,38 @@ def apply_stencil(data, paths, resourcepack):
             + json_data['group_name'] + '_' + str(cluster_data['id']+1) + '.png', "RGBA")
         if not cluster_data['colorize']:
             image_components.append(segment)
+            continue
 
         # Adjust contrast
-        contrast_mult = abs(analyze.variance(segment, 'V') - cluster_data['variance']) * .1
-        staged_image = filters.contrast(segment, contrast_mult)
+        contrast_mult = abs(analyze.variance(segment, 'V') - math.sqrt(cluster_data['variance'])) * .1
+        segment = filters.contrast(segment, contrast_mult)
 
         # Adjust coloration
         layer_count = len(cluster_data['hues'])*2
-        components = filters.value_decomposite(staged_image, layer_count)
+        components = filters.value_decomposite(segment, layer_count)
 
-        sat_poly_raw = math_utilities.polyfit(
-            np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
-
-        sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
-        linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
-        hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
+        # sat_poly_raw = math_utilities.polyfit(
+        #     np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
+        target_sat = math_utilities.linear_mean(cluster_data['sats'])
+        target_hue = math_utilities.circular_mean(cluster_data['hues'])
+        # linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
+        # hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
 
         colorized_components = []
         for index, layer in enumerate(components):
 
             normalized_index = float(index) / len(components)
 
-            hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
-            sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
+            # hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
+            # sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
 
             # Reduce sat in lighter areas of image
             mean_lightness = analyze.mean(layer, 'V')
-            sat_reduction = pow(mean_lightness, len(components)) * sat_target
-            sat_target -= sat_reduction
-            sat_target = math_utilities.clamp(sat_target)
-
-            layer = filters.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
+            sat_reduction = pow(mean_lightness, len(components)) * target_sat
+            target_sat -= sat_reduction
+            target_sat = math_utilities.clamp(target_sat)
+            print(mapping_path + " sat " + str(target_sat))
+            layer = filters.colorize(layer, target_hue, target_sat, 0, 1., 1.0, 0)
             colorized_components.append(layer)
 
         staged_image = filters.composite(colorized_components)
@@ -97,4 +99,5 @@ def apply_stencil(data, paths, resourcepack):
     if not os.path.exists(os.path.split(full_path_output)[0]):
         os.makedirs(os.path.split(full_path_output)[0])
 
+    os.remove(full_path_output)
     output_image.save(full_path_output)
