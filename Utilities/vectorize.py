@@ -45,11 +45,11 @@ def vectorize(items, function, args=None, returns=False):
 
 def process_wrapper(item_queue, function, arguments):
     if arguments is not None:
-        while True:
+        while not item_queue.empty():
             item = item_queue.get()
             function(item, *arguments)
 
     else:
-        while True:
+        while not item_queue.empty():
             item = item_queue.get()
             function(item)
