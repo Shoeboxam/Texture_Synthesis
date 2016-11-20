@@ -33,7 +33,7 @@ def vectorize(items, function, args=None, returns=False):
     for proc in pool:
         proc.start()
 
-    while not file_queue.empty():
+    while any([proc.is_alive() for proc in pool]):
         time.sleep(1)
 
     for proc in pool:

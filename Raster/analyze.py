@@ -2,12 +2,11 @@ from sklearn.cluster import KMeans
 from scipy.stats.stats import pearsonr
 from sklearn.cluster import spectral_clustering
 from sklearn.feature_extraction import image
-
-from Raster import math_utilities as math
-
 from numpy import exp
 import numpy as np
 from numpy.linalg.linalg import LinAlgError
+
+from Utilities import math as math
 
 
 def extrema(raster, channel):
@@ -34,7 +33,7 @@ def variance(raster, channel=None):
     return data.std() / mean(raster, channel)
 
 
-def color_extract(raster, color_count):
+def color_kmeans(raster, color_count):
     """Pass in image path, returns X number of representative colors"""
     # Cluster center
     representative_colors = []
@@ -55,6 +54,22 @@ def color_extract(raster, color_count):
             pass
 
     return np.vectorize(math.clamp)(representative_colors)
+
+
+def color_extract(raster, color_count):
+    raster.to_hsv()
+    opaque_data = raster.get_opaque().T
+    print(opaque_data)
+    hues = math.circular_sort(opaque_data[0])
+    sats = sorted(opaque_data[1])
+    vals = sorted(opaque_data[2])
+
+    colors = []
+    step_size = len(hues) / color_count
+
+    for i in range(color_count):
+        colors.append((hues[int(i*step_size)], sats[int(i*step_size)], vals[int(i*step_size)]))
+    return colors
 
 
 def correlate(a, b):

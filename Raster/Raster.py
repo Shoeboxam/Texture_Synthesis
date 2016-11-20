@@ -111,7 +111,7 @@ class Raster(object):
         return Image.fromarray(np.ceil(pixels * 255).astype(np.uint8), mode='RGBA')
 
     def get_opaque(self):
-        return np.array([np.append(color, alpha) for color, alpha in zip(self._colors, self._mask) if alpha > 0])
+        return np.array([np.append(color, alpha) for color, alpha in zip(self._colors, self._mask) if alpha > 0.])
 
     def get_tiered(self):
         return np.reshape(self.with_alpha(), (self._shape[0], self._shape[1], 4))

@@ -1,7 +1,6 @@
 from math import cos, sin, atan, pi
 import numpy as np
 from math import isnan
-import random
 
 from Utilities.vectorize import vectorize
 
@@ -109,66 +108,10 @@ def circular_sort(hues):
     return sorted_hues
 
 
-def polyfit(x, y):
-    return np.polyfit(x, y, len(x)/2)
-
-
-def polysolve(coeff, x):
-    return np.polyval(coeff, x)
-
-
 def cylindrical_norm(point_a, point_b):
     # ---H  -S  -V
     theta1, r1, z1 = point_a
     theta2, r2, z2 = point_b
+
+    # Law of cosines + squared z diff
     return np.sqrt(r1**2 + r2**2 - 2 * r1 * r2 * cos((theta2-theta1)*2*pi) + (z2 - z1)**2)
-
-def KMeans(points):
-    centroids_accum = []
-    variance = []
-    k = 0
-
-    def compute(k):
-        centroids = [random.uniform(0, 1) for x in range(k)]
-        new_centroids = [random.uniform(0, 1) for x in range(k)]
-
-        def classify_points():
-            clusters = {}
-            for point in points:
-                bestmukey = min([(i, cylindrical_norm(point, cent)) for i, cent in enumerate(centroids)], key=lambda t:t[1])[0]
-                try:
-                    clusters[bestmukey].append(x)
-                except KeyError:
-                    clusters[bestmukey] = [x]
-            return clusters
-
-        def find_centroids(clusters):
-            mu = []
-            keys = sorted(clusters.keys())
-
-            for key in keys:
-                channel_data = np.array(clusters[key]).transpose()
-                print(channel_data)
-                hue_mean = circular_mean(channel_data[0])
-                sat_mean = linear_mean(channel_data[1])
-                val_mean = linear_mean(channel_data[2])
-                mu.append((hue_mean, sat_mean, val_mean))
-
-            return mu
-
-        while not set(centroids) == set(new_centroids):  # check for convergence
-            centroids = new_centroids
-            new_centroids = find_centroids(classify_points())
-        return centroids
-
-    def elbowed():
-        return True
-
-    def get_variance(centroids):
-        return 1
-
-    while not elbowed():
-        k += 1
-        centroids = compute(k)
-        variance.append(get_variance(centroids))
-        centroids_accum.append(centroids)

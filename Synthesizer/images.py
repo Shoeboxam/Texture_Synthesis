@@ -6,7 +6,8 @@ import pathlib
 import numpy as np
 
 from Raster.Raster import Raster
-from Raster import math_utilities, analyze, filters
+from Raster import analyze, filters
+from Utilities import math
 from Utilities.vectorize import vectorize
 
 np.set_printoptions(precision=2, linewidth=1000)
@@ -37,22 +38,11 @@ def populate_images(paths, binding_ids):
 
 
 def analyze_image(image, template=None, granularity=10):
-    colors = analyze.color_extract(image, granularity)
+    hsv = np.array(analyze.color_extract(image, granularity)).T
 
-    hues = []
-    sats = []
-    vals = []
-
-    for color in colors:
-        r, g, b, a = color
-        h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        hues.append(h)
-        sats.append(s)
-        vals.append(v)
-
-    hues = math_utilities.circular_sort(list(set(hues)))
-    sats = sorted(list(set(sats)))[::-1]
-    vals = sorted(list(set(vals)))
+    hues = math.circular_sort(list(hsv[0]))
+    sats = sorted(list(hsv[1]))[::-1]
+    vals = sorted(list(hsv[2]))
 
     data_variance = analyze.variance(image, 'V')
     lightness = analyze.mean(image, 'V')
@@ -126,26 +116,26 @@ def apply_template(data, paths):
                     layer_count = len(cluster_data['hues'])*2
                     components = filters.value_decomposite(staged_image, layer_count)
 
-                    sat_poly_raw = math_utilities.polyfit(
+                    sat_poly_raw = math.polyfit(
                         np.linspace(0, 1, len(cluster_data['sats'])), cluster_data['sats'])
 
-                    sorted_hues = math_utilities.circular_sort(cluster_data['hues'])
+                    sorted_hues = math.circular_sort(cluster_data['hues'])
                     linear_mapped_hues = (np.array(sorted_hues) - sorted_hues[0]) % 1
-                    hue_poly = math_utilities.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
+                    hue_poly = math.polyfit(np.linspace(0, 1, len(cluster_data['hues'])), linear_mapped_hues)
 
                     colorized_components = []
                     for index, layer in enumerate(components):
 
                         normalized_index = float(index) / len(components)
 
-                        hue_target = (math_utilities.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
-                        sat_target = math_utilities.polysolve(sat_poly_raw, normalized_index)
+                        hue_target = (math.polysolve(hue_poly, normalized_index) + sorted_hues[0]) % 1
+                        sat_target = math.polysolve(sat_poly_raw, normalized_index)
 
                         # Reduce sat in lighter areas of image
                         mean_lightness = analyze.mean(layer, 'V')
                         sat_reduction = pow(mean_lightness, len(components)) * sat_target
                         sat_target -= sat_reduction
-                        sat_target = math_utilities.clamp(sat_target)
+                        sat_target = math.clamp(sat_target)
 
                         layer = filters.colorize(layer, hue_target, sat_target, 0, 1., 1., 0.0)
                         colorized_components.append(layer)

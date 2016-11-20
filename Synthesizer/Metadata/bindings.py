@@ -3,14 +3,13 @@ import json
 import ast
 
 import numpy as np
-
 from scipy.spatial.distance import euclidean
 
 from Raster.Raster import Raster
-from Raster import math_utilities, filters
+from Raster import filters
+from Utilities import math
 from Synthesizer.images import analyze_image
 from Synthesizer.cluster import spectral_cluster
-
 from Utilities.vectorize import vectorize
 
 
@@ -109,9 +108,9 @@ def match(data_a, data_b, guide_a, guide_b, shape):
     threshold = .7
 
     # Check hue, sat and lightness for similarity
-    if abs(math_utilities.circular_mean(data_a['hues']) - math_utilities.circular_mean(data_b['hues'])) > threshold:
+    if abs(math.circular_mean(data_a['hues']) - math.circular_mean(data_b['hues'])) > threshold:
         return False
-    if abs(math_utilities.linear_mean(data_a['sats']) - math_utilities.linear_mean(data_b['sats'])) > threshold:
+    if abs(math.linear_mean(data_a['sats']) - math.linear_mean(data_b['sats'])) > threshold:
         return False
     if abs(data_a['lightness'] - data_b['lightness']) > threshold:
         return False

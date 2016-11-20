@@ -19,7 +19,9 @@ class App(tk.Frame):
 
         self.settings = settings
         if not (os.path.exists(settings.default_patches)):
-            files.create_default(settings.mods_directory)
+            print("Creating default texture pack. This may take a few minutes.")
+            print(settings.default_patches)
+            files.create_default(settings)
 
         self.grid()
         self.master.title("Synthesizer")

@@ -2,15 +2,16 @@ import zipfile
 import os
 from distutils.dir_util import copy_tree
 
-from shutil import rmtree, copy2, copy
+from shutil import rmtree, copy2
 
 
 def create_default(paths):
     """Creates a default texture pack in mod repository format"""
 
     # Create staging pack
+
     extract_files(paths.mods_directory, paths.default_patches)
-    copy(os.path.normpath(paths.vanilla_pack), paths.default_patches + '\\minecraft\\')
+    # copy(os.path.normpath(paths.vanilla_pack), paths.default_patches + '\\minecraft\\')
     print('Unpacked mods')
 
     resource_filter(paths.default_patches)

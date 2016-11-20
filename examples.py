@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 
 from Raster import Raster, filters, analyze
-from Raster.math_utilities import *
-
+from Utilities.math import *
 from Synthesizer import images, sources
 
 

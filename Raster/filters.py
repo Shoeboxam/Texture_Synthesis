@@ -8,7 +8,7 @@ from networkx.algorithms.components.connected import connected_components
 
 from Raster.analyze import mean, extrema
 from Raster import Raster
-from Raster.math_utilities import circular_mean, linear_mean, clamp
+from Utilities.math import circular_mean, linear_mean, clamp
 
 
 def colorize(raster, hue, sat=0., val=0., hue_opacity=1., sat_opacity=0, val_opacity=0):
