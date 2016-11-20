@@ -241,52 +241,6 @@ def composite(raster_list):
         pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)
 
 
-def combine(raster_list):
-    """Combine all input layers with additive alpha blending"""
-    # This filter does clip- depth and order of raster_list is preserved
-    channel_count = Raster.channel_depth[raster_list[0].mode]
-
-    pixel_layers = []
-    for img in raster_list:
-        pixel_layers.append(img.with_alpha())
-
-    pixel_accumulator = []
-    mask_construct = []
-
-    # Take transpose of pixel layers to produce a list of corresponding pixels
-    for pixel_profile in np.array(list(zip(*pixel_layers))):
-
-        # Opacity is the sum of alpha channels
-        opacity = sum(pixel_profile[:, channel_count])
-
-        # If one of the pixels has opacity
-        if opacity != 0:
-            pixel = []
-
-            # Treat opacity as weight
-            weights = pixel_profile[:, channel_count]
-
-            for layer in pixel_profile:
-                pass
-
-            # Condense profile down into one representative pixel
-            for channel_index, channel_id in enumerate(raster_list[0].mode):
-                if channel_id == 'H':
-                    pixel.append(circular_mean(pixel_profile[:, channel_index], weights))
-                else:
-                    pixel.append(linear_mean(pixel_profile[:, channel_index], weights))
-            mask_construct.append(float(clamp(opacity)))
-
-            pixel_accumulator.append(pixel)
-
-        else:
-            pixel_accumulator.append([0., 0., 0.])
-            mask_construct.append(0.)
-
-    return Raster.Raster(
-        pixel_accumulator, raster_list[0].shape, raster_list[0].mode, mask_construct, name=raster_list[0].name)
-
-
 def frame_resize(raster, size):
     # No interpolation
 

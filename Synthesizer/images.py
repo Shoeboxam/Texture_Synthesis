@@ -38,8 +38,7 @@ def populate_images(paths, binding_ids):
 
 
 def analyze_image(image, template=None, granularity=10):
-    hsv = np.array(analyze.color_extract(image, granularity)).T
-
+    hsv = np.array(analyze.color_extract(image, granularity))
     hues = math.circular_sort(list(hsv[0]))
     sats = sorted(list(hsv[1]))[::-1]
     vals = sorted(list(hsv[2]))

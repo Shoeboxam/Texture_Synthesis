@@ -57,19 +57,31 @@ def color_kmeans(raster, color_count):
 
 
 def color_extract(raster, color_count):
+
+    def doubleMADsfromMedian(y, thresh=3.5):
+        m = np.median(y)
+        abs_dev = np.abs(y - m)
+        left_mad = np.median(abs_dev[y <= m])
+        right_mad = np.median(abs_dev[y >= m])
+        y_mad = left_mad * np.ones(len(y))
+        y_mad[y > m] = right_mad
+
+        modified_z_score = 0.6745 * abs_dev / y_mad
+        modified_z_score[y == m] = 0
+        y[modified_z_score > thresh] = m
+        return sorted(y)
+
     raster.to_hsv()
     opaque_data = raster.get_opaque().T
-    print(opaque_data)
-    hues = math.circular_sort(opaque_data[0])
-    sats = sorted(opaque_data[1])
-    vals = sorted(opaque_data[2])
+    step_size = int(len(opaque_data[0]) / color_count)
+    mean_hue = math.circular_mean(opaque_data[0])
+    normalized_hues = np.mod(np.add(opaque_data[0,::step_size], (0.5 - mean_hue)), 1)
 
-    colors = []
-    step_size = len(hues) / color_count
+    hues = np.mod(doubleMADsfromMedian(np.add(normalized_hues, mean_hue - 0.5)), 1)
+    sats = doubleMADsfromMedian(opaque_data[1,::step_size])
+    vals = doubleMADsfromMedian(opaque_data[2,::step_size])
 
-    for i in range(color_count):
-        colors.append((hues[int(i*step_size)], sats[int(i*step_size)], vals[int(i*step_size)]))
-    return colors
+    return np.array((hues, sats, vals))
 
 
 def correlate(a, b):

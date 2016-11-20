@@ -37,7 +37,6 @@ def apply_stencil(data, paths, resourcepack):
 
         if not cluster_data['colorize']:
             image_components.append(segment)
-            segment.get_image().show()
             continue
 
         # Adjust contrast
@@ -52,10 +51,8 @@ def apply_stencil(data, paths, resourcepack):
             colorized_components.append(layer)
         staged_image = filters.composite(colorized_components)
 
-        staged_image.get_image().show()
         # Adjust lightness
         lightness_adjustment = cluster_data['lightness'] - analyze.mean(segment, 'V')
-        print(mapping_path + ': ' + str(lightness_adjustment))
         staged_image = filters.brightness(staged_image, lightness_adjustment)
         image_components.append(staged_image)
 
@@ -63,7 +60,6 @@ def apply_stencil(data, paths, resourcepack):
         component.to_rgb()
 
     output_image = filters.composite(image_components)
-    output_image.get_image().show()
 
     # Output/save image
     full_path_output = str(mapping_path)\
