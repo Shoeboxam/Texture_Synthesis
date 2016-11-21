@@ -47,7 +47,8 @@ def apply_stencil(data, paths, resourcepack):
         components = filters.value_decomposite(segment, layer_count)
         colorized_components = []
         for i, layer in enumerate(components):
-            layer = filters.colorize(layer, cluster_data['hues'][i], cluster_data['sats'][i], 0, 1, 1, 0)
+            sat_multiplier = 1-i/layer_count * 0.5
+            layer = filters.colorize(layer, cluster_data['hues'][i], cluster_data['sats'][i] * sat_multiplier, 0, 1, 1, 0)
             colorized_components.append(layer)
         staged_image = filters.composite(colorized_components)
 
@@ -65,7 +66,8 @@ def apply_stencil(data, paths, resourcepack):
     full_path_output = str(mapping_path)\
         .replace(paths.mappings_metadata_custom, paths.output_path + '//' + resourcepack + '//')\
         .replace('.json', '')
-    print('Generated: ' + mapping_path.replace(paths.mappings_metadata_custom, resourcepack + '//').replace('.json', ''))
+    print('Generated: ' +
+          mapping_path.replace(paths.mappings_metadata_custom, resourcepack + '//').replace('.json', ''))
 
     if not os.path.exists(os.path.split(full_path_output)[0]):
         os.makedirs(os.path.split(full_path_output)[0])

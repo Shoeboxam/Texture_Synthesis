@@ -6,6 +6,7 @@ from Synthesizer.metadata.stencils import apply_stencil
 from Raster.Raster import Raster
 from Utilities.vectorize import vectorize
 
+import threading
 import json
 import webbrowser
 import os
@@ -90,6 +91,9 @@ class App(tk.Frame):
         self.generate_defaults_button = tk.Button(self.Frame1, text='Generate Defaults', command=self.generate_defaults)
         self.generate_defaults_button.grid(row=17, column=0, sticky='nsew')
 
+        self.synthesizebutton = tk.Button(self.Frame1, text='SYNTHESIZE', command=self.synthesize)
+        self.synthesizebutton.grid(row=20, column=0, columnspan=2, sticky='new')
+
         # Frame 2
         self.Frame2 = tk.Frame(master)
         self.Frame2.grid(row=0, column=1, sticky="nsew")
@@ -102,23 +106,6 @@ class App(tk.Frame):
         self.ResourcepackListing.configure(exportselection=False)
 
         self.ResourcepackListing.bind("<Double-Button-1>", self.click_resourcepack)
-
-        # Frame 3
-        self.Frame3 = tk.Frame(master)
-        self.Frame3.grid(row=0, column=2, sticky="news")
-        self.master.columnconfigure(2, weight=1)
-        self.Frame3.columnconfigure(0, weight=1)
-
-        self.synthesizebutton = tk.Button(self.Frame3, text='SYNTHESIZE', command=self.synthesize)
-        self.synthesizebutton.grid(row=0, column=0, sticky='new')
-
-        self.SynthLog = tk.Text(self.Frame3)
-        scrollbar = tk.Scrollbar(self.Frame3)
-        scrollbar.config(command=self.SynthLog.yview)
-        self.SynthLog.config(yscrollcommand=scrollbar.set)
-        scrollbar.grid(row=1, column=0, sticky='nse')
-        self.SynthLog.grid(row=1, column=0, sticky='nsew')
-        self.Frame3.rowconfigure(1, weight=1)
 
         self.ResourcepackListing.focus_set()
 
@@ -183,6 +170,8 @@ class App(tk.Frame):
         except ValueError:
             self.ResourcepackListing.selection_set(0)
 
+        self.ResourcepackListing.focus_set()
+
     def synthesize(self):
         resourcepacks = self.ResourcepackListing.curselection()
         for pack in resourcepacks:
@@ -198,7 +187,8 @@ class App(tk.Frame):
                         mapping_data = json.load(json_file)
                         stencil_paths.append((full_path, mapping_data))
 
-            vectorize(stencil_paths, apply_stencil, [self.settings, rp_folder])
+            t = threading.Thread(target=vectorize, args=(stencil_paths, apply_stencil, [self.settings, rp_folder]))
+            t.start()
 
     def click_resourcepack(self, event):
         selection = self.ResourcepackListing.curselection()
@@ -228,7 +218,7 @@ if __name__ == '__main__':
     settings = Settings(r"C:/Users/mike_000/Documents/Pycharm/Texture_Synthesis/Synthesizer/config.json")
 
     root = tk.Tk()
-    w, h = root.winfo_screenwidth(), root.winfo_screenheight()
+    w, h = int(root.winfo_screenwidth()/2), root.winfo_screenheight()
     root.geometry("%dx%d+0+0" % (w, h))
 
     app = App(root, settings)

@@ -283,6 +283,12 @@ class StencilEditor(tk.Frame):
         self.make_layer_gui()
 
     def rename(self, event):
+        for i in range(10):
+            stencilpath_temp = os.path.normpath(self.stenciledit + '//' + self.stencilname + '_' + str(i) + '.png')
+
+            if os.path.exists(stencilpath_temp):
+                os.rename(stencilpath_temp, stencilpath_temp.replace(self.stencilname, self.entryname.get()))
+
         self.stencilname = self.entryname.get()
 
     def on_closing(self):

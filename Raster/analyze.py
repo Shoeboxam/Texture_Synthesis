@@ -74,6 +74,8 @@ def color_extract(raster, color_count):
     raster.to_hsv()
     opaque_data = raster.get_opaque().T
     step_size = int(len(opaque_data[0]) / color_count)
+    if (step_size == 0):
+        step_size += 1
     mean_hue = math.circular_mean(opaque_data[0])
     normalized_hues = np.mod(np.add(opaque_data[0,::step_size], (0.5 - mean_hue)), 1)
 
