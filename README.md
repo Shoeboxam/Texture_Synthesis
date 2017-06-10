@@ -3,7 +3,7 @@ Texture Synthesis
 
 
 Procedural sprite generation with an application in Minecraft resource pack mod support. 
-Core image manipulation logic, from filters, to the data structure, are all handled in the raster module.
+Core image manipulation logic, from filters, to the data structure, are all handled in the raster submodule.
 
 The Minecraft application creates an undirected graph from groups of related images. The most connected nodes within each bunch are designated as templates. 
 Every default image classified with a template is profiled, and the data is stored in a tree of json files.
@@ -19,16 +19,12 @@ and can read mods and resourcepacks directly from a Minecraft instance.
 Structure
 ---------
 Raster: custom image object, filters and analysis tools  
-Utilities: implementation of Minecraft use case  
-Specializations: scripts for generating specific classes of textures
+Synthesizer: implementation of Minecraft use case  
+Interface: manual config editing to create initial training data
 
 
 TODO
 ---------
-Call specialization scripts from main  
-Multithread profiling/skeleton generation  
-Add support for gui generation within specialization section  
 Fuzzy cluster matching and ignore logic  
 Scrape MCF Modlist to automatically compile mod directory  
-Clean up paths/add config system  
 
